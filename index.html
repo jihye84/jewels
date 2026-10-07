@@ -155,6 +155,7 @@ button:focus-visible{outline:2px solid var(--pearl);outline-offset:2px}
 <div class="looks">
   <button id="lightBtn" type="button" aria-label="조명 바꾸기"><span>조명</span><b id="lightName">보석상</b></button>
   <button id="floorBtn" type="button" aria-label="바닥 바꾸기"><span>바닥</span><b id="floorName">검은 벨벳</b></button>
+  <button id="camBtn" type="button" aria-pressed="false" aria-label="내 모습 비추기"><span>거울</span><b id="camName">끄기</b></button>
 </div>
 <div class="hint off" id="hint">천천히 기울여 보세요</div>
 
@@ -310,6 +311,7 @@ var SCENE='precision highp float;\n#define MAXP '+MAXP+'\n'+[
 'uniform vec2 uTan,uSpot;uniform float uShift,uExpo,uKind,uN,uF0,uZc,uBR,uStars,uAlex,uIncl,uMix,uBounce;',
 'uniform mat3 uR,uRT,uQ;uniform vec3 uBox[9];uniform vec3 uWin[3];',
 'uniform vec3 uKeyC,uBC[3],uBgT,uBgB,uBelow,uStarC,uPoolC,uAmb,uWinC;uniform float uHalo,uStarTh,uPoolR,uFloor;',
+'uniform sampler2D uCamT;uniform float uCamOn,uCamGain;uniform vec2 uCamFov;uniform vec3 uRoom;',
 'float h21(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}',
 'vec2 h22(vec2 p){float a=h21(p);return vec2(a,h21(p+a*17.13+3.1));}',
 'float h31(vec3 p){p=fract(p*.3183099+.1);p*=17.;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}',
@@ -340,7 +342,11 @@ var SCENE='precision highp float;\n#define MAXP '+MAXP+'\n'+[
 ' return c;}',
 'vec3 envW(vec3 d){return envBase(d)+stars(d);}',
 'vec3 envRefl(vec3 d){vec3 c=mix(uBgB,uBgT,smoothstep(-.1,1.,d.y));c+=uBC[0]*box(d,uBox[0],uBox[1],uBox[2],vec2(.17,.95),.1)+uBC[1]*box(d,uBox[3],uBox[4],uBox[5],vec2(.15,.85),.1)+uBC[2]*box(d,uBox[6],uBox[7],uBox[8],vec2(.75,.45),.15);return c;}',
-'vec3 envP(vec3 d){vec3 c=envW(uQ*d);return c*mix(1.,.06,smoothstep(.89,.975,dot(d,uHead)));}',
+'vec4 camLook(vec3 d){float h=dot(d,uHead);if(h<=.05)return vec4(0.);vec3 p=d/h;float u=dot(p,uRight)/uCamFov.x,v=dot(p,uUp)/uCamFov.y;',
+' float m=max(abs(u),abs(v));float w=smoothstep(1.7,1.,m)*smoothstep(.05,.35,h);vec2 tc=clamp(vec2(.5-.5*u,.5+.5*v),.002,.998);',
+' vec3 c=pow(texture2D(uCamT,tc).rgb,vec3(2.2))*uCamGain;return vec4(c,w);}',
+'vec3 envP(vec3 d){vec3 c=envW(uQ*d);float hd=mix(1.,.06,smoothstep(.89,.975,dot(d,uHead)));',
+' if(uCamOn>.5){vec4 cm=camLook(d);float k=cm.w*(uKind<.5?.7:1.);return mix(c*hd,cm.rgb+c*.25,k);}return c*hd;}',
 'vec3 lightC(vec3 d){float k=max(dot(d,uL),0.);return uKeyC*(7.*pow(k,70.)+.25*pow(k,3.));}',
 'vec3 envAny(vec3 d,float m){return m<.5?envP(d):lightC(d);}',
 // 알렉산드라이트: 차가운 햇빛(왼쪽·위 조명)과 따뜻한 백열등(뒤쪽 주광·오른쪽 조명)을 따로 받는다
@@ -385,7 +391,7 @@ var SCENE='precision highp float;\n#define MAXP '+MAXP+'\n'+[
 'vec3 irr(vec3 nP,float wrap){vec3 W=uQ*nP;float k=dot(W,uL0);',
 ' vec3 c=uKeyC*2.4*max((k+wrap)/(1.+wrap),0.);',
 ' c+=uBC[0]*.24*max(dot(W,uBox[0]),0.)+uBC[1]*.25*max(dot(W,uBox[3]),0.)+uBC[2]*.55*max(dot(W,uBox[6]),0.);',
-' return c+(uBgT*1.2+vec3(.04,.037,.04))*(.6+.4*max(W.y,0.))+uBelow*.8*max(-W.y,0.);}',
+' return c+(uBgT*1.2+vec3(.04,.037,.04))*(.6+.4*max(W.y,0.))+uBelow*.8*max(-W.y,0.)+uRoom*uCamOn*.9*max(dot(nP,uHead)*.5+.5,0.);}',
 'bool sph(vec3 o,vec3 d,float r){float b=dot(o,d);float c=dot(o,o)-r*r;return b*b-c>0.&&(c<0.||b<0.);}',
 'bool hitPoly(vec3 o,vec3 d,out float tN,out float tF,out vec3 nN){tN=-1e9;tF=1e9;nN=vec3(0.,0.,1.);',
 ' for(int i=0;i<MAXP;i++){if(i>=uNP)break;vec4 p=uP[i];float den=dot(p.xyz,d);float ds=p.w-dot(p.xyz,o);',
@@ -421,7 +427,9 @@ var SCENE='precision highp float;\n#define MAXP '+MAXP+'\n'+[
 ' c+=uBC[1]*.36*box(d,uBox[3],uBox[4],uBox[5],vec2(.15,.85),.5);',
 ' c+=uBC[2]*.8*box(d,uBox[6],uBox[7],uBox[8],vec2(.75,.45),.6);',
 ' c+=uWinC*(2.2*box(d,uWin[0],uWin[1],uWin[2],vec2(.13,.18),.12)+.5*pow(max(dot(d,uWin[0]),0.),16.));',
-' return c*mix(1.,.35,smoothstep(.85,.98,dot(dP,uHead)));}',
+' float hd=mix(1.,.35,smoothstep(.85,.98,dot(dP,uHead)));',
+' if(uCamOn>.5){vec4 a=camLook(dP),b=camLook(normalize(dP+uRight*.06)),e=camLook(normalize(dP-uUp*.06));vec4 cm=(a+b+e)/3.;return mix(c*hd,cm.rgb*.8+c*.3,cm.w*.85);}',
+' return c*hd;}',
 'float pbump(vec3 p){float h=fbm3(p*1.9)*.55+fbm3(p*7.5+3.)*.22;',
 ' h+=.07*sin(30.*p.z+4.*fbm3(p*1.4))*smoothstep(.2,.7,fbm3(p*1.1+8.));',
 ' h-=.2*smoothstep(.72,.84,fbm3(p*13.+5.));return h*.06;}',
@@ -736,6 +744,35 @@ function looks(){lightName.textContent=LIGHTS[lightI].name;floorName.textContent
 looks();
 document.getElementById('lightBtn').addEventListener('click',function(){lightI=(lightI+1)%LIGHTS.length;looks();showHint(LIGHTS[lightI].name+' 조명');});
 document.getElementById('floorBtn').addEventListener('click',function(){floorI=(floorI+1)%FLOORS.length;looks();showHint(FLOORS[floorI].name+' 바닥');});
+// 거울: 앞쪽 카메라에 비친 나와 방을 보석이 비추게 한다. 영상은 이 휴대폰 안에서만 쓰고 어디로도 보내지 않는다.
+var camOn=false,camStream=null,camVideo=null,camTex=null,camReady=false,camAsp=4/3,room=[0,0,0],roomT=0;
+var roomCv=document.createElement('canvas');roomCv.width=8;roomCv.height=6;var roomCx=roomCv.getContext('2d',{willReadFrequently:true});
+var camBtn=document.getElementById('camBtn'),camName=document.getElementById('camName');
+function camUI(){camName.textContent=camOn?'켜짐':'끄기';camBtn.setAttribute('aria-pressed',camOn?'true':'false');}
+function camStop(){if(camStream){camStream.getTracks().forEach(function(t){t.stop();});}camStream=null;camReady=false;}
+function camStart(){
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){camOn=false;camUI();showHint('이 브라우저에서는 카메라를 쓸 수 없어요');return;}
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:false}).then(function(st){
+    if(!camOn){st.getTracks().forEach(function(t){t.stop();});return;}
+    camStream=st;if(!camVideo){camVideo=document.createElement('video');camVideo.muted=true;camVideo.playsInline=true;camVideo.setAttribute('playsinline','');}
+    camVideo.srcObject=st;var p=camVideo.play();if(p&&p.catch)p.catch(function(){});
+    camVideo.onloadedmetadata=function(){camAsp=(camVideo.videoWidth||4)/(camVideo.videoHeight||3);};
+  }).catch(function(){camOn=false;camUI();showHint('카메라를 쓸 수 없어서 거울을 켜지 못했어요');});
+}
+camBtn.addEventListener('click',function(){camOn=!camOn;camUI();
+  if(camOn){showHint('카메라 영상은 이 휴대폰 밖으로 나가지 않아요');camStart();}else camStop();});
+document.addEventListener('visibilitychange',function(){if(document.hidden)camStop();else if(camOn&&!camStream)camStart();});
+function camUpdate(now){
+  if(!camOn||!camVideo||camVideo.readyState<2)return false;
+  if(!camTex){camTex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,camTex);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);}
+  gl.activeTexture(gl.TEXTURE3);gl.bindTexture(gl.TEXTURE_2D,camTex);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
+  try{gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,camVideo);}catch(e){gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);return false;}
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,false);
+  if(now-roomT>300){roomT=now;try{roomCx.drawImage(camVideo,0,0,8,6);var d=roomCx.getImageData(0,0,8,6).data,r=0,g=0,b=0;
+    for(var i=0;i<d.length;i+=4){r+=Math.pow(d[i]/255,2.2);g+=Math.pow(d[i+1]/255,2.2);b+=Math.pow(d[i+2]/255,2.2);}var n=d.length/4;room=[r/n,g/n,b/n];}catch(e){}}
+  camReady=true;return true;}
 var hintT=0;
 function showHint(t){hint.textContent=t;hint.classList.remove('off');clearTimeout(hintT);hintT=setTimeout(function(){hint.classList.add('off');},2600);}
 document.getElementById('go').addEventListener('click',function(){
@@ -793,6 +830,7 @@ function frame(now){
   if(ty<2.55/DIST){ty=2.55/DIST;tx=ty*asp;shift=0.12;}
   var zf=(zoom-1)/(ZMAX-1);tx/=zoom;ty/=zoom;var PJ={G:GEM,CAM:CAM,FWD:FWD,RIGHT:RIGHT,UP:UP,tx:tx,ty:ty,br:st.br};shift=shift*(1-zf)*(1-0.25*Math.min(1,zoom-1))+0.04*zf;PJ.shift=shift;proj=PJ;
 
+  var camLive=camUpdate(now);
   target(A);var u=use(PR.scene);
   gl.uniform4fv(u.uP,st.planes);gl.uniform1i(u.uNP,st.np);gl.uniform2f(u.uRes,W,Hh);
   gl.uniform3fv(u.uCam,CAM);gl.uniform3fv(u.uFwd,FWD);gl.uniform3fv(u.uRight,RIGHT);gl.uniform3fv(u.uUp,UP);
@@ -805,7 +843,7 @@ function frame(now){
   var alb=floorI===3?[FL.alb*1.3,FL.alb*.75,FL.alb*.45]:[FL.alb,FL.alb*.97,FL.alb*.95];
   gl.uniform3fv(u.uBelow,[0,1,2].map(function(j){return alb[j]*(LT.pool[j]*.2+LT.amb[j]*.5)+LT.bgB[j];}));
   gl.uniform3fv(u.uStarC,LT.starC);gl.uniform1f(u.uStarTh,LT.starTh);gl.uniform1f(u.uHalo,LT.halo);
-  gl.uniform3fv(u.uPoolC,LT.pool);gl.uniform1f(u.uPoolR,LT.poolR);gl.uniform3fv(u.uAmb,LT.amb);gl.uniform3fv(u.uWinC,LT.win);gl.uniform1f(u.uFloor,floorI);gl.uniform1f(u.uIncl,st.incl||0);gl.uniform3fv(u.uAbs2,st.abs2||[0,0,0]);gl.uniform3fv(u.uInclC,st.inclC||[0,0,0]);
+  gl.uniform3fv(u.uPoolC,LT.pool);gl.uniform1f(u.uPoolR,LT.poolR);gl.uniform3fv(u.uAmb,LT.amb);gl.uniform3fv(u.uWinC,LT.win);gl.uniform1f(u.uFloor,floorI);gl.uniform1f(u.uCamOn,camLive?1:0);gl.uniform1f(u.uCamGain,st.kind===0?0.75:1.9);gl.uniform1i(u.uCamT,3);gl.uniform3fv(u.uRoom,camLive?room:[0,0,0]);var fy=Math.tan(26*DEG);gl.uniform2f(u.uCamFov,fy*camAsp,fy);gl.uniform1f(u.uIncl,st.incl||0);gl.uniform3fv(u.uAbs2,st.abs2||[0,0,0]);gl.uniform3fv(u.uInclC,st.inclC||[0,0,0]);
   gl.uniform2f(u.uSpot,(GEM[0]+shd[0])*0.5,(GEM[2]+shd[1])*0.5);
   gl.uniformMatrix3fv(u.uR,false,R);gl.uniformMatrix3fv(u.uRT,false,tr(R));gl.uniformMatrix3fv(u.uQ,false,Qm);
   gl.uniform3fv(u.uBox,BOX);gl.uniform3fv(u.uWin,WIN);gl.uniform3fv(u.uWinP,mv(tr(Qm),WIN.slice(0,3)));
