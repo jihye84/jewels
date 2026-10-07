@@ -170,22 +170,22 @@ if(!gl){fail('이 브라우저에서는 3D 그래픽(WebGL)을 쓸 수 없어요
    1. 보석 데이터
    ========================================================= */
 var STONES=[
- {m:1, ko:'가넷',      en:'Garnet',     cut:'로즈 컷',            geo:'rose',    kind:0, n:1.76,  disp:0.024, abs:[0.10,1.9,1.6],  expo:1.35, c:'#9b2335', mean:'진실 · 우정',       spec:'굴절률 1.76 · 분산 0.024 · 경도 6.5–7.5'},
- {m:2, ko:'자수정',    en:'Amethyst',   cut:'트릴리언트 컷',       geo:'trillion',kind:0, n:1.544, disp:0.013, abs:[0.30,1.05,0.10],expo:1.3,  c:'#8a5cc4', mean:'성실 · 평화',       spec:'굴절률 1.54 · 분산 0.013 · 경도 7'},
- {m:3, ko:'아쿠아마린',en:'Aquamarine', cut:'페어 컷',            geo:'pear',    kind:0, n:1.577, disp:0.014, abs:[0.42,0.10,0.04],expo:1.25, c:'#7cc7d8', mean:'젊음 · 행복',       spec:'굴절률 1.58 · 분산 0.014 · 경도 7.5–8'},
- {m:4, ko:'다이아몬드',en:'Diamond',    cut:'라운드 브릴리언트 컷', geo:'round',   kind:0, n:2.417, disp:0.044, abs:[0,0,0.004],     expo:1.0,  c:'#e6edf2', mean:'불멸 · 사랑',       spec:'굴절률 2.42 · 분산 0.044 · 경도 10'},
+ {m:1, ko:'가넷',      en:'Garnet',     cut:'로즈 컷',            geo:'rose',    kind:0, incl:3, inclC:[0.60,0.40,0.22], n:1.76,  disp:0.024, abs:[0.10,1.9,1.6],  expo:1.35, c:'#9b2335', mean:'진실 · 우정',       spec:'굴절률 1.76 · 분산 0.024 · 경도 6.5–7.5'},
+ {m:2, ko:'자수정',    en:'Amethyst',   cut:'트릴리언트 컷',       geo:'trillion',kind:0, incl:4, inclC:[0.45,0.42,0.55], n:1.544, disp:0.013, abs:[0.30,1.05,0.10],expo:1.3,  c:'#8a5cc4', mean:'성실 · 평화',       spec:'굴절률 1.54 · 분산 0.013 · 경도 7'},
+ {m:3, ko:'아쿠아마린',en:'Aquamarine', cut:'페어 컷',            geo:'pear',    kind:0, incl:5, inclC:[0.45,0.55,0.60], n:1.577, disp:0.014, abs:[0.42,0.10,0.04],expo:1.25, c:'#7cc7d8', mean:'젊음 · 행복',       spec:'굴절률 1.58 · 분산 0.014 · 경도 7.5–8'},
+ {m:4, ko:'다이아몬드',en:'Diamond',    cut:'라운드 브릴리언트 컷', geo:'round',   kind:0, incl:6, inclC:[0.55,0.55,0.60], n:2.417, disp:0.044, abs:[0,0,0.004],     expo:1.0,  c:'#e6edf2', mean:'불멸 · 사랑',       spec:'굴절률 2.42 · 분산 0.044 · 경도 10'},
  {m:5, ko:'에메랄드',  en:'Emerald',    cut:'에메랄드 컷',         geo:'emerald', kind:0, incl:1, inclC:[0.22,0.40,0.26], n:1.577, disp:0.014, abs:[1.10,0.12,0.65],expo:1.3,  c:'#1f9a5e', mean:'행운 · 행복',       spec:'굴절률 1.58 · 분산 0.014 · 경도 7.5–8'},
  {m:6, ko:'진주',      en:'Pearl',      cut:'라운드 진주',         geo:'pearl',   kind:3,                                                         expo:0.80,  c:'#efe6dc', mean:'건강 · 장수',       spec:'굴절률 1.53–1.69 · 진주층 광택 · 경도 2.5–4.5'},
- {m:7, ko:'루비',      en:'Ruby',       cut:'쿠션 컷',            geo:'cushion', kind:0, n:1.77,  disp:0.018, abs:[0.03,1.6,1.05], expo:1.15, c:'#d0163f', mean:'사랑 · 열정',       spec:'굴절률 1.77 · 분산 0.018 · 경도 9'},
- {m:8, ko:'페리도트',  en:'Peridot',    cut:'마퀴즈 컷',           geo:'marquise',kind:0, n:1.67,  disp:0.020, abs:[0.45,0.06,1.05],expo:1.2,  c:'#a9c63a', mean:'부부의 행복 · 화합', spec:'굴절률 1.65–1.69 · 분산 0.020 · 경도 6.5–7'},
+ {m:7, ko:'루비',      en:'Ruby',       cut:'쿠션 컷',            geo:'cushion', kind:0, incl:7, inclC:[0.60,0.45,0.45], n:1.77,  disp:0.018, abs:[0.03,1.6,1.05], expo:1.15, c:'#d0163f', mean:'사랑 · 열정',       spec:'굴절률 1.77 · 분산 0.018 · 경도 9'},
+ {m:8, ko:'페리도트',  en:'Peridot',    cut:'마퀴즈 컷',           geo:'marquise',kind:0, incl:8, inclC:[0.60,0.62,0.40], n:1.67,  disp:0.020, abs:[0.45,0.06,1.05],expo:1.2,  c:'#a9c63a', mean:'부부의 행복 · 화합', spec:'굴절률 1.65–1.69 · 분산 0.020 · 경도 6.5–7'},
  {m:9, ko:'사파이어',  en:'Sapphire',   cut:'오벌 브릴리언트 컷',   geo:'oval',    kind:0, incl:2, inclC:[0.50,0.58,0.85], n:1.77,  disp:0.018, abs:[1.25,0.62,0.05],expo:1.2,  c:'#2453b8', mean:'성실 · 진실',       spec:'굴절률 1.77 · 분산 0.018 · 경도 9'},
  {m:10,ko:'오팔',      en:'Opal',       cut:'오벌 카보숑',         geo:'cabOval', kind:2,                                                         expo:1.0,  c:'#c7d7e4', mean:'희망 · 순결',       spec:'굴절률 1.45 · 유색 효과 · 경도 5.5–6.5'},
- {m:11,ko:'토파즈',    en:'Topaz',      cut:'아셔 컷',            geo:'asscher', kind:0, n:1.62,  disp:0.014, abs:[0.02,0.32,1.25],expo:1.2,  c:'#e9a23b', mean:'우정 · 희망',       spec:'굴절률 1.61–1.63 · 분산 0.014 · 경도 8'},
+ {m:11,ko:'토파즈',    en:'Topaz',      cut:'아셔 컷',            geo:'asscher', kind:0, incl:9, inclC:[0.55,0.48,0.36], n:1.62,  disp:0.014, abs:[0.02,0.32,1.25],expo:1.2,  c:'#e9a23b', mean:'우정 · 희망',       spec:'굴절률 1.61–1.63 · 분산 0.014 · 경도 8'},
  {m:12,ko:'터키석',    en:'Turquoise',  cut:'라운드 카보숑',       geo:'cabRound',kind:1,                                                         expo:1.0,  c:'#3fb7ae', mean:'성공 · 승리',       spec:'불투명 · 굴절률 1.61 · 경도 5–6'}
 ];
 // 같은 달의 또 다른 탄생석
 var ALTS={
- 5:{m:6, alt:true, ko:'알렉산드라이트',en:'Alexandrite',cut:'롱 쿠션 컷',geo:'cushionLong',kind:0,alex:1,n:1.75,disp:0.015,abs:[1.0,0.16,0.55],abs2:[0.06,1.7,0.95],expo:1.3,c:'#4a9a7e',mean:'건강 · 장수',spec:'햇빛엔 초록, 등불엔 붉은빛 · 굴절률 1.75 · 경도 8.5'},
+ 5:{m:6, alt:true, ko:'알렉산드라이트',en:'Alexandrite',cut:'롱 쿠션 컷',geo:'cushionLong',kind:0,alex:1,incl:2,inclC:[0.30,0.34,0.34],n:1.75,disp:0.015,abs:[1.0,0.16,0.55],abs2:[0.06,1.7,0.95],expo:1.3,c:'#4a9a7e',mean:'건강 · 장수',spec:'햇빛엔 초록, 등불엔 붉은빛 · 굴절률 1.75 · 경도 8.5'},
  8:{m:9, alt:true, ko:'스타 사파이어',en:'Star Sapphire',cut:'하이 돔 카보숑',geo:'cabStar',kind:4,n:1.77,expo:1.0,c:'#3a5cb4',mean:'성실 · 진실',spec:'여섯 줄기 별빛(성채 효과) · 굴절률 1.77 · 경도 9'}
 };
 
@@ -351,14 +351,37 @@ var SCENE='precision highp float;\n#define MAXP '+MAXP+'\n'+[
 ' cl=vec3(.80,.93,1.15)*1.15*(1.-uMix)*(b0*box(d,uBox[0],uBox[1],uBox[2],vec2(.17,.95),.05)+b2*box(d,uBox[6],uBox[7],uBox[8],vec2(.75,.45),.12))+bg*(1.6-uMix)+st*vec3(.8,.95,1.2)*.5;',
 ' float hd=mix(1.,.06,smoothstep(.89,.975,dot(dP,uHead)));cl*=hd;wm*=hd;}',
 // 내포물: 에메랄드의 이끼 같은 자르댕, 사파이어의 가는 실크(루틸 바늘)
-'vec2 inc(vec3 q){',
-' if(uIncl<1.5){float rr=1.-abs(fbm3(q*2.4+1.)*2.-1.);float sh=smoothstep(.91,.975,rr);',
+// 보석마다 다른 자연의 흔적. x: 빛을 가리는 정도, y: 빛을 받아 반짝이는 정도, z: 보석 색이 더 짙어지는 정도(색 띠)
+'vec3 h33(vec3 p){return vec3(h31(p),h31(p+7.13),h31(p+3.31));}',
+'float needles(vec3 q,vec3 d,float F,float th,float pres){vec3 a=normalize(cross(d,vec3(.31,.83,.47))),b=cross(d,a);',
+' vec2 c=vec2(dot(q,a),dot(q,b))*F;vec2 id=floor(c);vec2 r=h22(id);if(r.x<pres)return 0.;',
+' vec2 f=fract(c)-.5-(r-.5)*.5;float seg=step(fract(dot(q,d)*2.5+r.y*7.),.45);return smoothstep(th,0.,length(f))*seg;}',
+'vec3 inc(vec3 q){',
+' if(uIncl<1.5){float rr=1.-abs(fbm3(q*2.4+1.)*2.-1.);float sh=smoothstep(.91,.975,rr);',   // 에메랄드: 자르댕
 '  float mo=smoothstep(.58,.70,fbm3(q*7.+4.))*smoothstep(.42,.58,fbm3(q*1.3+9.));',
-'  return vec2(sh*2.2+mo*1.6,sh*2.2+mo*.5);}',
-' float s=0.;for(int i=0;i<3;i++){float a=float(i)*1.0472;vec2 dr=vec2(cos(a),sin(a));',
+'  return vec3(sh*2.2+mo*1.6,sh*2.2+mo*.5,0.);}',
+' if(uIncl<2.5){float s=0.;for(int i=0;i<3;i++){float a=float(i)*1.0472;vec2 dr=vec2(cos(a),sin(a));',   // 사파이어·알렉산드라이트: 실크
 '  float u=dot(q.xy,vec2(-dr.y,dr.x))*60.+vn3(q*4.+float(i))*6.;float ln=pow(abs(sin(u)),16.);',
 '  s+=ln*smoothstep(.68,.8,vn3(vec3(dot(q.xy,dr)*2.2,u*.05,q.z*4.+float(i)*7.)))*smoothstep(.45,.6,vn3(q*2.3+float(i)*3.));}',
-' return vec2(s*.35,s*1.2);}',
+'  return vec3(s*.35,s*1.2,0.);}',
+' if(uIncl<3.5){float s=needles(q,normalize(vec3(1.,.45,.3)),14.,.08,.48)+needles(q,normalize(vec3(-.35,1.,-.5)),14.,.08,.48)+needles(q,normalize(vec3(.2,-.4,1.)),14.,.08,.55);',   // 가넷: 엇갈린 금빛 바늘과 작은 결정, 색 얼룩
+'  vec3 g=q*3.2;vec3 id=floor(g);float cr=0.;if(h31(id)>.78){vec3 c=id+.25+.5*h33(id);float dd=length(g-c);cr=smoothstep(.10,.06,dd);s+=smoothstep(.22,.16,dd)*(1.-cr)*.5;}',
+'  return vec3(s*.5+cr*6.+.06,s*2.4+.08,.8*smoothstep(.42,.7,fbm3(q*1.6+2.)));}',
+' if(uIncl<4.5){float st=fract(dot(q,vec3(.45,.85,.25))*2.4+fbm3(q*1.3)*.7);float zn=smoothstep(.35,.5,st)*smoothstep(.95,.75,st);',   // 자수정: 색 띠와 지문 같은 결
+'  float fp=pow(abs(sin(dot(q,vec3(.8,-.3,.5))*46.+fbm3(q*3.)*9.)),24.)*smoothstep(.62,.72,fbm3(q*2.+6.));',
+'  return vec3(fp*.6,fp*2.4,1.5*zn);}',
+' if(uIncl<5.5){float s=needles(q,vec3(0.,1.,0.),14.,.16,.55);return vec3(s*.2,s*1.6,0.);}',   // 아쿠아마린: 긴 대롱(비 내포물)
+' if(uIncl<6.5){vec3 g=q*6.;vec3 id=floor(g);float pp=0.;if(h31(id)>.93){vec3 c=id+.3+.4*h33(id);pp=smoothstep(.12,.03,length(g-c));}',   // 다이아몬드: 핀포인트와 작은 깃털
+'  float rr=1.-abs(fbm3(q*3.+11.)*2.-1.);float fe=smoothstep(.95,.99,rr)*smoothstep(.5,.2,length(q-vec3(.45,-.2,-.25)));',
+'  return vec3(pp*1.5+fe*.6,pp*2.5+fe*1.6,0.);}',
+' if(uIncl<7.5){float s=0.;for(int i=0;i<3;i++){float a=float(i)*1.0472+.4;s+=needles(q,vec3(cos(a),sin(a),0.),24.,.06,.62);}',   // 루비: 짧은 실크와 시럽처럼 일렁이는 색
+'  float sw=smoothstep(.5,.66,fbm3(q*vec3(1.2,1.2,3.)+fbm3(q*2.)*2.2));return vec3(s*.35,s*2.2,.9*sw);}',
+' if(uIncl<8.5){vec3 g=q*2.3;vec3 id=floor(g);float dk=0.,sc=0.;if(h31(id)>.45){vec3 c=id+.3+.4*h33(id);vec3 n=normalize(h33(id+5.)-.5);',   // 페리도트: 수련잎 내포물
+'  vec3 p=g-c;float hh=dot(p,n);float rr=length(p-hh*n);float disc=smoothstep(.16,.0,abs(hh))*smoothstep(.36,.28,rr);',
+'  float core=smoothstep(.07,.035,length(p));dk=core*5.+disc*.35;sc=disc*3.*(.55+.45*sin(rr*40.));}return vec3(dk,sc,0.);}',
+' vec3 g=q*vec3(3.5,8.,8.);vec3 id=floor(g);float s=0.,bb=0.;if(h31(id)>.86){vec3 c=id+.3+.4*h33(id);vec3 p=(g-c)*vec3(1.,.45,.45);',   // 토파즈: 두 상(액체+기포) 내포물과 옅은 색 띠
+' float d1=length(p);s=smoothstep(.16,.12,d1);bb=smoothstep(.05,.03,length(p-vec3(.06,0.,0.)));}',
+' return vec3(s*.3+bb*3.,s*1.4,.3*smoothstep(.5,.7,fbm3(q*1.4+3.)));}',
 'vec3 irr(vec3 nP,float wrap){vec3 W=uQ*nP;float k=dot(W,uL0);',
 ' vec3 c=uKeyC*2.4*max((k+wrap)/(1.+wrap),0.);',
 ' c+=uBC[0]*.24*max(dot(W,uBox[0]),0.)+uBC[1]*.25*max(dot(W,uBox[3]),0.)+uBC[2]*.55*max(dot(W,uBox[6]),0.);',
@@ -377,9 +400,9 @@ var SCENE='precision highp float;\n#define MAXP '+MAXP+'\n'+[
 ' for(int i=0;i<MAXP;i++){if(i>=uNP)break;vec4 p=uP[i];float den=dot(p.xyz,d);if(den>1e-5){float t=(p.w-dot(p.xyz,o))/den;if(t<tm){tm=t;n=p.xyz;}}}return tm;}',
 'vec3 inside(vec3 p,vec3 r,float m){vec3 acc=vec3(0.),thr=vec3(1.),thr2=vec3(1.);',
 ' for(int b=0;b<6;b++){if(float(b)>=uBounce)break;vec3 n;float t=exitPoly(p,r,n);',
-'  if(m<.5&&uIncl>.5&&b<2){float dt=t/6.;float fw=.3+.7*pow(max(dot(uR*r,uL),0.),3.);',
-'   for(int s=0;s<6;s++){vec3 q=p+r*(dt*(float(s)+.5));vec2 dn=inc(q);vec3 a=exp(-uAbs*dt*(float(s)+.5));',
-'    acc+=thr*a*dn.y*dt*fw*uInclC;thr*=exp(-dn.x*dt);thr2*=exp(-dn.x*dt);}}',
+'  if(m<.5&&uIncl>.5&&b<2){float dt=t/8.;float jt=uIncl<1.5?.5:h21(gl_FragCoord.xy+float(b)*17.);float fw=.3+.7*pow(max(dot(uR*r,uL),0.),3.);',
+'   for(int s=0;s<8;s++){vec3 q=p+r*(dt*(float(s)+jt));vec3 dn=inc(q);vec3 a=exp(-uAbs*dt*(float(s)+.5));',
+'    acc+=thr*a*dn.y*dt*fw*uInclC;thr*=exp(-dn.x*dt-uAbs*dn.z*dt);thr2*=exp(-dn.x*dt-uAbs2*dn.z*dt);}}',
 '  p+=r*t;thr*=exp(-uAbs*t);thr2*=exp(-uAbs2*t);float c=dot(r,n);float k=1.-uN*uN*(1.-c*c);',
 '  if(k>0.){float ct=sqrt(k);float F=uF0+(1.-uF0)*pow(1.-ct,5.);',
 '   if(uAlex>.5){vec3 dd=refract(r,-n,uN);if(dot(dd,dd)>.5){vec3 cl,wm;envSplit(uR*dd,m,cl,wm);acc+=(1.-F)*(thr*cl+thr2*wm);}}',
