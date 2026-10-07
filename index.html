@@ -1,0 +1,761 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<script>
+/* 카카오톡·네이버·페이스북·인스타그램 등 인앱 브라우저에서 열리면 기본 브라우저로 다시 열기 */
+(function () {
+  var ua = navigator.userAgent || '';
+  var url = location.href;
+  var inApp = /KAKAOTALK|NAVER\(inapp|FBAN|FBAV|FB_IAB|Instagram|Line\/|DaumApps|everytimeApp|wv\)/i.test(ua);
+  if (/KAKAOTALK/i.test(ua)) { location.href = 'kakaotalk://web/openExternal?url=' + encodeURIComponent(url); return; }
+  if (/Line\//i.test(ua) && url.indexOf('openExternalBrowser=1') < 0) {
+    location.href = url + (url.indexOf('?') < 0 ? '?' : '&') + 'openExternalBrowser=1'; return;
+  }
+  if (!inApp) return;
+  if (/Android/i.test(ua)) {
+    location.href = 'intent://' + url.replace(/^https?:\/\//, '') + '#Intent;scheme=https;package=com.android.chrome;end'; return;
+  }
+  // iOS 인앱 브라우저는 사파리로 강제 이동이 불가 → 안내 화면(Safari로 열기 설명 + 주소 복사 + 그냥 여기서 보기)
+  document.addEventListener('DOMContentLoaded', function () {
+    var box = document.createElement('div');
+    box.setAttribute('role', 'dialog');
+    box.style.cssText = 'position:fixed;inset:0;z-index:99;background:rgba(13,17,32,.94);color:#eef0f8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;font:15px/1.6 system-ui,sans-serif';
+    box.innerHTML = '<strong style="font-size:18px">사파리에서 열어 주세요</strong>' +
+      '<span>이 앱 안의 브라우저에서는 일부 기능이 제대로 작동하지 않을 수 있어요.<br>⋯ 메뉴에서 <b>Safari로 열기</b>를 눌러 주세요.</span>' +
+      '<button id="copyUrl" style="font:inherit;padding:10px 18px;border-radius:999px;border:0;background:#eef0f8;color:#0d1120">주소 복사</button>' +
+      '<button id="stayHere" style="font:inherit;background:none;border:0;color:#9aa3c0;text-decoration:underline">그냥 여기서 보기</button>';
+    document.body.appendChild(box);
+    document.getElementById('copyUrl').onclick = function () {
+      var b = this;
+      (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(
+        function () { b.textContent = '복사했어요'; }, function () { prompt('주소를 복사하세요', url); });
+    };
+    document.getElementById('stayHere').onclick = function () { box.remove(); };
+  });
+})();
+</script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0a0d">
+<meta property="og:title" content="탄생석 보석함">
+<meta property="og:description" content="휴대폰을 기울이면 빛이 면을 따라 흐르는 열두 달 탄생석. 넘겨 보고, 두 손가락으로 확대해 보세요.">
+<meta property="og:type" content="website">
+<title>탄생석 보석함</title>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Cormorant+Garamond:ital,wght@1,500&display=swap">
+<style>
+/* 레이아웃: 화면 전체가 벨벳 보석함 — 위쪽에 보석, 아래로 그림자, 맨 아래 이름표와 열두 달 칩. 글자는 가장자리에만. */
+:root{
+  --ink:#0b0a0d;
+  --pearl:#ece8e1;
+  --mist:#a39fa8;
+  --hair:rgba(236,232,225,.18);
+  --veil:rgba(11,10,13,.55);
+  --glint:#f6f1e6;
+  --accent:#e8eef2;
+  --serif:"Gowun Batang","Noto Serif KR","Apple SD Gothic Neo",serif;
+  --italic:"Cormorant Garamond","Times New Roman",serif;
+  color-scheme:dark;
+}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--ink);color:var(--pearl);overscroll-behavior:none}
+body{font-family:var(--serif);-webkit-user-select:none;user-select:none;touch-action:none;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit}
+#gl{position:fixed;inset:0;width:100%;height:100%;display:block}
+.top{position:fixed;left:0;right:0;top:calc(env(safe-area-inset-top,0px) + 16px);padding-inline:20px;display:flex;justify-content:space-between;align-items:baseline;gap:12px;pointer-events:none}
+.top .mon{font-size:13px;letter-spacing:.28em;color:var(--pearl);opacity:.9;transition:font-size .3s ease}
+.top .mon.big{font-size:16px;letter-spacing:.18em;opacity:1}
+.top .cut{font-size:13px;letter-spacing:.12em;color:var(--mist)}
+.zoom{position:fixed;right:14px;top:calc(env(safe-area-inset-top,0px) + 54px);display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px;border:1px solid var(--hair);border-radius:999px;background:var(--veil);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.zoom button{width:40px;height:40px;border:0;border-radius:50%;background:none;font-size:22px;line-height:1;cursor:pointer}
+.zoom output{font-family:var(--italic);font-style:italic;font-size:14px;color:var(--mist);font-variant-numeric:tabular-nums;padding:2px 0}
+.looks{position:fixed;left:14px;top:calc(env(safe-area-inset-top,0px) + 54px);display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.looks button{display:flex;align-items:baseline;gap:7px;height:36px;padding:0 14px;border:1px solid var(--hair);border-radius:999px;background:var(--veil);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);cursor:pointer;font-size:13px}
+.looks span{font-size:11px;letter-spacing:.12em;color:var(--mist)}
+.looks b{font-weight:400;color:var(--pearl);letter-spacing:.04em}
+.sheet:not(.gone) ~ .looks{opacity:0;pointer-events:none}
+.nav{position:fixed;top:44%;width:44px;height:64px;border:0;background:none;font-size:30px;color:var(--pearl);opacity:.55;cursor:pointer}
+.nav:hover{opacity:.95}
+#prev{left:4px}#next{right:4px}
+.dock{position:fixed;left:0;right:0;bottom:0;padding:18px 16px calc(env(safe-area-inset-bottom,0px) + 14px);display:flex;flex-direction:column;align-items:center;gap:12px;background:linear-gradient(to top,rgba(11,10,13,.9) 55%,rgba(11,10,13,0))}
+.info{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;transition:opacity .5s ease;height:132px;justify-content:flex-end}
+.alt{display:flex;gap:6px;margin-top:6px;min-height:30px}
+.alt button{font-size:12.5px;letter-spacing:.04em;height:30px;padding:0 14px;border-radius:999px;border:1px solid var(--hair);background:none;color:var(--mist);cursor:pointer}
+.alt button[aria-pressed="true"]{background:var(--glint);color:var(--ink);border-color:var(--glint)}
+.info.hide{opacity:0;pointer-events:none}
+.name{display:flex;align-items:baseline;gap:10px}
+.name h2{margin:0;font-weight:700;font-size:clamp(24px,7vw,30px);letter-spacing:.06em}
+.name span{font-family:var(--italic);font-style:italic;font-size:19px;color:var(--accent)}
+.meaning{margin:0;font-size:14px;letter-spacing:.2em;color:var(--pearl);opacity:.85}
+.spec{margin:0;font-size:11.5px;letter-spacing:.05em;color:var(--mist);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.months{display:flex;gap:3px;justify-content:center;max-width:100%}
+.months button{width:26px;height:40px;border:0;background:none;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer}
+.months i{width:10px;height:10px;border-radius:50%;background:var(--c);box-shadow:0 0 0 1px rgba(255,255,255,.15) inset;transition:transform .25s ease}
+.months b{font-weight:400;font-size:10px;color:var(--mist);font-variant-numeric:tabular-nums}
+.months button[aria-current="true"] i{transform:scale(1.45);box-shadow:0 0 0 1.5px var(--pearl),0 0 10px var(--c)}
+.months button[aria-current="true"] b{color:var(--pearl)}
+.sheet{position:fixed;left:0;right:0;bottom:0;padding:24px 20px calc(env(safe-area-inset-bottom,0px) + 34px);display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;background:linear-gradient(to top,rgba(11,10,13,.96) 55%,rgba(11,10,13,0));transition:opacity .8s ease;z-index:5}
+.sheet h1{margin:0;font-weight:400;font-size:clamp(20px,5.6vw,26px);letter-spacing:.06em;text-wrap:balance}
+.sheet p{margin:0;font-size:14px;line-height:1.7;color:var(--mist);max-width:28em}
+.sheet .go{font-size:15px;letter-spacing:.14em;min-height:48px;padding:0 30px;border-radius:999px;border:1px solid var(--hair);background:var(--glint);color:var(--ink);cursor:pointer}
+.sheet.gone{opacity:0;pointer-events:none}
+.sheet:not(.gone) ~ .dock,.sheet:not(.gone) ~ .nav{opacity:0;pointer-events:none}
+.dock,.nav{transition:opacity .8s ease}
+button:focus-visible{outline:2px solid var(--pearl);outline-offset:2px}
+.hint{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 50px);transform:translateX(-50%);font-size:13px;letter-spacing:.06em;color:var(--pearl);background:var(--veil);border:1px solid var(--hair);padding:8px 16px;border-radius:999px;white-space:nowrap;transition:opacity 1.2s ease;pointer-events:none}
+.hint.off{opacity:0}
+.err{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;line-height:1.7;color:var(--mist);z-index:9}
+@media (min-aspect-ratio:4/3){.nav{top:46%}#prev{left:12px}#next{right:12px}}
+@media (prefers-reduced-motion:reduce){.info,.sheet,.dock,.nav,.months i{transition:none}}
+</style>
+
+<canvas id="gl" aria-label="열두 달 탄생석 가운데 하나가 빛을 받아 반짝이는 장면"></canvas>
+
+<div class="top"><span class="mon" id="mon">4월의 탄생석</span><span class="cut" id="cut">라운드 브릴리언트 컷</span></div>
+<div class="zoom" aria-label="확대">
+  <button id="zin" type="button" aria-label="확대">+</button>
+  <output id="zval">1.0×</output>
+  <button id="zout" type="button" aria-label="축소">−</button>
+</div>
+
+<div class="sheet" id="sheet">
+  <h1>탄생석 보석함</h1>
+  <p>열두 달의 보석을 한 알씩 손바닥에 올려 보세요.<br>휴대폰을 천천히 기울이면 빛이 면을 따라 흐릅니다.</p>
+  <button class="go" id="go" type="button">보석함 열기</button>
+</div>
+<button class="nav" id="prev" type="button" aria-label="이전 달">‹</button>
+<button class="nav" id="next" type="button" aria-label="다음 달">›</button>
+<div class="dock">
+  <div class="info" id="info" aria-live="polite">
+    <div class="name"><h2 id="ko">다이아몬드</h2><span id="en">Diamond</span></div>
+    <p class="meaning" id="meaning">불멸 · 사랑</p>
+    <p class="spec" id="spec">굴절률 2.42 · 분산 0.044 · 경도 10</p>
+    <div class="alt" id="alt" role="group" aria-label="이 달의 다른 탄생석"></div>
+  </div>
+  <nav class="months" id="months" aria-label="달 고르기"></nav>
+</div>
+<div class="looks">
+  <button id="lightBtn" type="button" aria-label="조명 바꾸기"><span>조명</span><b id="lightName">보석상</b></button>
+  <button id="floorBtn" type="button" aria-label="바닥 바꾸기"><span>바닥</span><b id="floorName">검은 벨벳</b></button>
+</div>
+<div class="hint off" id="hint">천천히 기울여 보세요</div>
+
+<script>
+(function(){
+"use strict";
+var canvas=document.getElementById('gl');
+var gl=canvas.getContext('webgl',{antialias:false,alpha:false,depth:false,stencil:false,premultipliedAlpha:false,powerPreference:'high-performance'});
+function fail(msg){var e=document.createElement('div');e.className='err';e.textContent=msg;document.body.appendChild(e);}
+if(!gl){fail('이 브라우저에서는 3D 그래픽(WebGL)을 쓸 수 없어요. 크롬이나 사파리 최신 버전으로 열어 주세요.');return;}
+
+/* =========================================================
+   1. 보석 데이터
+   ========================================================= */
+var STONES=[
+ {m:1, ko:'가넷',      en:'Garnet',     cut:'로즈 컷',            geo:'rose',    kind:0, n:1.76,  disp:0.024, abs:[0.10,1.9,1.6],  expo:1.35, c:'#9b2335', mean:'진실 · 우정',       spec:'굴절률 1.76 · 분산 0.024 · 경도 6.5–7.5'},
+ {m:2, ko:'자수정',    en:'Amethyst',   cut:'트릴리언트 컷',       geo:'trillion',kind:0, n:1.544, disp:0.013, abs:[0.30,1.05,0.10],expo:1.3,  c:'#8a5cc4', mean:'성실 · 평화',       spec:'굴절률 1.54 · 분산 0.013 · 경도 7'},
+ {m:3, ko:'아쿠아마린',en:'Aquamarine', cut:'페어 컷',            geo:'pear',    kind:0, n:1.577, disp:0.014, abs:[0.42,0.10,0.04],expo:1.25, c:'#7cc7d8', mean:'젊음 · 행복',       spec:'굴절률 1.58 · 분산 0.014 · 경도 7.5–8'},
+ {m:4, ko:'다이아몬드',en:'Diamond',    cut:'라운드 브릴리언트 컷', geo:'round',   kind:0, n:2.417, disp:0.044, abs:[0,0,0.004],     expo:1.0,  c:'#e6edf2', mean:'불멸 · 사랑',       spec:'굴절률 2.42 · 분산 0.044 · 경도 10'},
+ {m:5, ko:'에메랄드',  en:'Emerald',    cut:'에메랄드 컷',         geo:'emerald', kind:0, incl:1, inclC:[0.22,0.40,0.26], n:1.577, disp:0.014, abs:[1.10,0.12,0.65],expo:1.3,  c:'#1f9a5e', mean:'행운 · 행복',       spec:'굴절률 1.58 · 분산 0.014 · 경도 7.5–8'},
+ {m:6, ko:'진주',      en:'Pearl',      cut:'라운드 진주',         geo:'pearl',   kind:3,                                                         expo:0.80,  c:'#efe6dc', mean:'건강 · 장수',       spec:'굴절률 1.53–1.69 · 진주층 광택 · 경도 2.5–4.5'},
+ {m:7, ko:'루비',      en:'Ruby',       cut:'쿠션 컷',            geo:'cushion', kind:0, n:1.77,  disp:0.018, abs:[0.03,1.6,1.05], expo:1.15, c:'#d0163f', mean:'사랑 · 열정',       spec:'굴절률 1.77 · 분산 0.018 · 경도 9'},
+ {m:8, ko:'페리도트',  en:'Peridot',    cut:'마퀴즈 컷',           geo:'marquise',kind:0, n:1.67,  disp:0.020, abs:[0.45,0.06,1.05],expo:1.2,  c:'#a9c63a', mean:'부부의 행복 · 화합', spec:'굴절률 1.65–1.69 · 분산 0.020 · 경도 6.5–7'},
+ {m:9, ko:'사파이어',  en:'Sapphire',   cut:'오벌 브릴리언트 컷',   geo:'oval',    kind:0, incl:2, inclC:[0.50,0.58,0.85], n:1.77,  disp:0.018, abs:[1.25,0.62,0.05],expo:1.2,  c:'#2453b8', mean:'성실 · 진실',       spec:'굴절률 1.77 · 분산 0.018 · 경도 9'},
+ {m:10,ko:'오팔',      en:'Opal',       cut:'오벌 카보숑',         geo:'cabOval', kind:2,                                                         expo:1.0,  c:'#c7d7e4', mean:'희망 · 순결',       spec:'굴절률 1.45 · 유색 효과 · 경도 5.5–6.5'},
+ {m:11,ko:'토파즈',    en:'Topaz',      cut:'아셔 컷',            geo:'asscher', kind:0, n:1.62,  disp:0.014, abs:[0.02,0.32,1.25],expo:1.2,  c:'#e9a23b', mean:'우정 · 희망',       spec:'굴절률 1.61–1.63 · 분산 0.014 · 경도 8'},
+ {m:12,ko:'터키석',    en:'Turquoise',  cut:'라운드 카보숑',       geo:'cabRound',kind:1,                                                         expo:1.0,  c:'#3fb7ae', mean:'성공 · 승리',       spec:'불투명 · 굴절률 1.61 · 경도 5–6'}
+];
+// 같은 달의 또 다른 탄생석
+var ALTS={
+ 5:{m:6, alt:true, ko:'알렉산드라이트',en:'Alexandrite',cut:'롱 쿠션 컷',geo:'cushionLong',kind:0,alex:1,n:1.75,disp:0.015,abs:[1.0,0.16,0.55],abs2:[0.06,1.7,0.95],expo:1.3,c:'#4a9a7e',mean:'건강 · 장수',spec:'햇빛엔 초록, 등불엔 붉은빛 · 굴절률 1.75 · 경도 8.5'},
+ 8:{m:9, alt:true, ko:'스타 사파이어',en:'Star Sapphire',cut:'하이 돔 카보숑',geo:'cabStar',kind:4,n:1.77,expo:1.0,c:'#3a5cb4',mean:'성실 · 진실',spec:'여섯 줄기 별빛(성채 효과) · 굴절률 1.77 · 경도 9'}
+};
+
+// 조명과 바닥
+function sc(c,k){return [c[0]*k,c[1]*k,c[2]*k];}
+var LIGHTS=[
+ {name:'보석상',key:[1,.97,.92],halo:.25,bc:[sc([.93,.96,1],3.4),sc([1,.95,.88],2.8),sc([1,1,1],.55)],bgT:[.026,.027,.034],bgB:[.004,.004,.006],
+  starTh:.42,starC:[1,1,1],pool:sc([1,.95,.88],1.9),poolR:3.4,amb:[.022,.024,.032],win:[1,.98,.95],vig:.5,expo:1,alex:0},
+ {name:'햇살',key:[1,.98,.95],halo:.9,bc:[sc([.85,.92,1.05],4.0),sc([1,.98,.95],2.0),sc([.9,.95,1.05],2.2)],bgT:[.32,.38,.48],bgB:[.10,.11,.13],
+  starTh:.72,starC:[.6,.6,.6],pool:sc([1,.98,.95],1.6),poolR:9,amb:[.10,.11,.13],win:[1.2,1.2,1.2],vig:.8,expo:.72,alex:-.38},
+ {name:'촛불',key:[1,.60,.28],halo:.5,bc:[[0,0,0],sc([1,.58,.28],.9),sc([1,.65,.35],.15)],bgT:[.012,.007,.003],bgB:[.002,.001,.0005],
+  starTh:.5,starC:[1,.7,.4],pool:sc([1,.6,.3],1.8),poolR:2.8,amb:[.012,.008,.005],win:sc([1,.62,.3],.7),vig:.35,expo:1.3,alex:.4},
+ {name:'스포트라이트',key:[1.6,1.6,1.6],halo:.08,bc:[[0,0,0],[0,0,0],sc([.9,.95,1],.2)],bgT:[.003,.003,.004],bgB:[0,0,0],
+  starTh:.22,starC:[1.3,1.3,1.3],pool:sc([1,1,1],1.5),poolR:2.2,amb:[.006,.006,.008],win:[.6,.6,.6],vig:.3,expo:1.05,alex:0}
+];
+var FLOORS=[{name:'검은 벨벳',alb:.13},{name:'흰 실크',alb:.74},{name:'대리석',alb:.68},{name:'원목',alb:.22}];
+var lightI=0,floorI=0;
+try{lightI=Math.min(3,Math.max(0,+localStorage.getItem('gem.light')||0));floorI=Math.min(3,Math.max(0,+localStorage.getItem('gem.floor')||0));}catch(e){}
+
+/* =========================================================
+   2. 컷 기하 — 꼭짓점을 만들고 볼록 껍질의 면을 평면으로
+   ========================================================= */
+var DEG=Math.PI/180;
+function sub(a,b){return [a[0]-b[0],a[1]-b[1],a[2]-b[2]];}
+function cross(a,b){return [a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}
+function dot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];}
+function norm(a){var l=Math.hypot(a[0],a[1],a[2]);return [a[0]/l,a[1]/l,a[2]/l];}
+
+// 브릴리언트 컷 (N겹 대칭): 테이블·스타·베젤·어퍼거들·거들·로어거들·파빌리온
+function brilliant(N,off){
+  var RT=0.56,CA=34.5*DEG,PA=40.8*DEG,GT=0.035;
+  var zg=GT/2,zb=-GT/2,tc=Math.tan(CA),tp=Math.tan(PA),zt=zg+(1-RT)*tc,cz=zb-tp,ch=Math.cos(Math.PI/N);
+  var pS=RT+0.5*(1-RT),pQ=0.23,v=[];
+  function P(r,a,z){v.push([r*Math.cos(a),r*Math.sin(a),z]);}
+  for(var k=0;k<N;k++){
+    var th=off+k*2*Math.PI/N,ph=th+Math.PI/N;
+    P(RT,th,zt);P(1,th,zg);P(1,ph,zg);P(1,th,zb);P(1,ph,zb);
+    P(pS/ch,ph,zg+(1-pS)*tc);P(pQ/ch,ph,zb-(1-pQ)*tp);
+  }
+  v.push([0,0,cz]);return v;
+}
+// 스텝 컷 (에메랄드·아셔): 모서리를 깎은 사각형이 계단처럼 안쪽으로
+function stepCut(a,b,c){
+  var v=[],GT=0.03,r2=Math.SQRT2;
+  function ring(d,z){var aa=a-d,bb=b-d,cc=Math.max(0,c-(2-r2)*d);
+    if(bb<=1e-4){v.push([Math.max(aa,0),0,z],[-Math.max(aa,0),0,z]);return;}
+    if(aa<=1e-4){v.push([0,bb,z],[0,-bb,z]);return;}
+    [[1,1],[-1,1],[-1,-1],[1,-1]].forEach(function(s){v.push([s[0]*aa,s[1]*(bb-cc),z],[s[0]*(aa-cc),s[1]*bb,z]);});}
+  var m=Math.min(a,b);
+  ring(0,GT/2);ring(0,-GT/2);
+  var z=GT/2,d=0,cr=[[0.10,50],[0.09,41],[0.08,31]];
+  cr.forEach(function(s){z+=s[0]*m*Math.tan(s[1]*DEG);d+=s[0]*m;ring(d,z);});
+  z=-GT/2;d=0;var pv=[[0.25,58],[0.30,48],[0.25,40],[0.20,33]];
+  pv.forEach(function(s){z-=s[0]*m*Math.tan(s[1]*DEG);d+=s[0]*m;ring(Math.min(d,m),z);});
+  return v;
+}
+// 로즈 컷: 바닥은 평평하고 위는 삼각형 면으로 된 둥근 지붕
+function rose(){
+  var v=[[0,0,0.62]];
+  for(var k=0;k<6;k++){var a=k*Math.PI/3;v.push([0.30*Math.cos(a),0.30*Math.sin(a),0.54]);}
+  for(k=0;k<12;k++){a=k*Math.PI/6+Math.PI/12;v.push([0.58*Math.cos(a),0.58*Math.sin(a),0.42]);}
+  for(k=0;k<12;k++){a=k*Math.PI/6;v.push([0.83*Math.cos(a),0.83*Math.sin(a),0.24]);}
+  for(k=0;k<24;k++){a=k*Math.PI/12+Math.PI/24;v.push([Math.cos(a),Math.sin(a),0.06]);v.push([Math.cos(a),Math.sin(a),-0.08]);}
+  return v;
+}
+// 2D 볼록 다각형 윤곽과 방사 사상
+function hull2(p){p=p.slice().sort(function(a,b){return a[0]-b[0]||a[1]-b[1];});
+  function cr(o,a,b){return (a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]);}
+  var lo=[],up=[],i;for(i=0;i<p.length;i++){while(lo.length>1&&cr(lo[lo.length-2],lo[lo.length-1],p[i])<=0)lo.pop();lo.push(p[i]);}
+  for(i=p.length-1;i>=0;i--){while(up.length>1&&cr(up[up.length-2],up[up.length-1],p[i])<=0)up.pop();up.push(p[i]);}
+  up.pop();lo.pop();return lo.concat(up);}
+function polyRadius(poly){return function(th){var dx=Math.cos(th),dy=Math.sin(th),best=1e9;
+  for(var i=0;i<poly.length;i++){var A=poly[i],B=poly[(i+1)%poly.length],ex=B[0]-A[0],ey=B[1]-A[1];
+    var den=dx*ey-dy*ex;if(Math.abs(den)<1e-12)continue;var t=(A[0]*ey-A[1]*ex)/den,s=(A[0]*dy-A[1]*dx)/den;
+    if(t>0&&s>=-1e-9&&s<=1+1e-9&&t<best)best=t;}return best;};}
+function radialMap(v,f,zs){return v.map(function(p){var r=Math.hypot(p[0],p[1]);if(r<1e-9)return [p[0],p[1],p[2]*zs];var a=Math.atan2(p[1],p[0]),s=f(a);return [Math.cos(a)*r*s,Math.sin(a)*r*s,p[2]*zs];});}
+function scaleV(v,sx,sy,sz){return v.map(function(p){return [p[0]*sx,p[1]*sy,p[2]*sz];});}
+
+function cutVerts(geo){
+  var poly,i,a;
+  switch(geo){
+  case 'round':return brilliant(8,0);
+  case 'oval':return scaleV(brilliant(8,0),0.76,1.03,0.80);
+  case 'cushion':{var p=3.0,f=function(t){return Math.pow(Math.pow(Math.abs(Math.cos(t)),p)+Math.pow(Math.abs(Math.sin(t)),p),-1/p);};
+    var mx=f(Math.PI/4);return radialMap(brilliant(8,0),function(t){return f(t)/mx*1.02;},0.92);}
+  case 'cushionLong':{var p2=3.0,ax=0.80,f2=function(t){return Math.pow(Math.pow(Math.abs(Math.cos(t))/ax,p2)+Math.pow(Math.abs(Math.sin(t)),p2),-1/p2);};
+    var mx2=0;for(var q2=0;q2<360;q2++)mx2=Math.max(mx2,f2(q2*DEG));return radialMap(brilliant(8,0),function(t){return f2(t)/mx2*1.06;},0.82);}
+  case 'marquise':{var xc=0.75,Rc=1.25;return radialMap(brilliant(8,0),function(t){var ux=Math.abs(Math.cos(t));return 1.1*(-xc*ux+Math.sqrt(xc*xc*ux*ux+Rc*Rc-xc*xc));},0.62);}
+  case 'pear':{poly=[[0,1.08]];for(i=0;i<72;i++){a=i/72*2*Math.PI;poly.push([0.70*Math.cos(a),-0.30+0.70*Math.sin(a)]);}
+    return radialMap(brilliant(8,Math.PI/2),polyRadius(hull2(poly)),0.72);}
+  case 'trillion':{poly=[];var C=[90,210,330].map(function(d){return [Math.cos(d*DEG),Math.sin(d*DEG)];});
+    for(var s=0;s<3;s++){var A=C[s],B=C[(s+1)%3],nx=(A[1]+B[1]),ny=-(A[0]+B[0]);var mxv=Math.hypot(A[0]+B[0],A[1]+B[1]);
+      for(i=0;i<16;i++){var t=i/16,bl=0.13*4*t*(1-t);poly.push([A[0]+(B[0]-A[0])*t+(A[0]+B[0])/mxv*bl,A[1]+(B[1]-A[1])*t+(A[1]+B[1])/mxv*bl]);}}
+    return radialMap(brilliant(6,Math.PI/6),(function(g){return function(t){return g(t)*1.12;};})(polyRadius(hull2(poly))),0.66);}
+  case 'emerald':return stepCut(0.70,1.0,0.20);
+  case 'asscher':return stepCut(0.86,0.86,0.30);
+  case 'rose':return rose();
+  }
+  return null;
+}
+function hullPlanes(v){
+  var P=[],n=v.length,i,j,k,q,eps=1e-6;
+  for(i=0;i<n;i++)for(j=i+1;j<n;j++)for(k=j+1;k<n;k++){
+    var nn=cross(sub(v[j],v[i]),sub(v[k],v[i]));var l=Math.hypot(nn[0],nn[1],nn[2]);if(l<1e-9)continue;
+    nn=[nn[0]/l,nn[1]/l,nn[2]/l];var d=dot(nn,v[i]),mx=-1e9,mn=1e9;
+    for(q=0;q<n;q++){var s=dot(nn,v[q])-d;if(s>mx)mx=s;if(s<mn)mn=s;if(mx>eps&&mn<-eps)break;}
+    if(mx<=eps){}else if(mn>=-eps){nn=[-nn[0],-nn[1],-nn[2]];d=-d;}else continue;
+    var dup=false;for(q=0;q<P.length;q+=4){if(P[q]*nn[0]+P[q+1]*nn[1]+P[q+2]*nn[2]>0.99999&&Math.abs(P[q+3]-d)<1e-5){dup=true;break;}}
+    if(!dup)P.push(nn[0],nn[1],nn[2],d);
+  }
+  return P;
+}
+var MAXP=96;
+
+/* =========================================================
+   3. 셰이더
+   ========================================================= */
+var VS='attribute vec2 p;varying vec2 v;void main(){v=p*.5+.5;gl_Position=vec4(p,0.,1.);}';
+var SCENE='precision highp float;\n#define MAXP '+MAXP+'\n'+[
+'uniform vec4 uP[MAXP];uniform int uNP;uniform vec2 uRes;',
+'uniform vec3 uCam,uFwd,uRight,uUp,uG,uL,uL0,uHead,uIOR,uAbs,uAbs2,uEll,uTint,uShTint,uWinP,uInclC;',
+'uniform vec2 uTan,uSpot;uniform float uShift,uExpo,uKind,uN,uF0,uZc,uBR,uStars,uAlex,uIncl,uMix,uBounce;',
+'uniform mat3 uR,uRT,uQ;uniform vec3 uBox[9];uniform vec3 uWin[3];',
+'uniform vec3 uKeyC,uBC[3],uBgT,uBgB,uBelow,uStarC,uPoolC,uAmb,uWinC;uniform float uHalo,uStarTh,uPoolR,uFloor;',
+'float h21(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}',
+'vec2 h22(vec2 p){float a=h21(p);return vec2(a,h21(p+a*17.13+3.1));}',
+'float h31(vec3 p){p=fract(p*.3183099+.1);p*=17.;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}',
+'float vn(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(h21(i),h21(i+vec2(1,0)),f.x),mix(h21(i+vec2(0,1)),h21(i+vec2(1,1)),f.x),f.y);}',
+'float vn3(vec3 x){vec3 i=floor(x),f=fract(x);f=f*f*(3.-2.*f);',
+' return mix(mix(mix(h31(i),h31(i+vec3(1,0,0)),f.x),mix(h31(i+vec3(0,1,0)),h31(i+vec3(1,1,0)),f.x),f.y),',
+'  mix(mix(h31(i+vec3(0,0,1)),h31(i+vec3(1,0,1)),f.x),mix(h31(i+vec3(0,1,1)),h31(i+vec3(1,1,1)),f.x),f.y),f.z);}',
+'float fbm(vec3 p){float a=.5,s=0.;for(int i=0;i<4;i++){s+=a*vn3(p);p=p*2.03+1.7;a*=.5;}return s;}',
+'float fbm3(vec3 p){float a=.5,s=0.;for(int i=0;i<3;i++){s+=a*vn3(p);p=p*2.07+1.3;a*=.5;}return s;}',
+'vec3 hue(float h){return clamp(abs(fract(h+vec3(0.,2./3.,1./3.))*6.-3.)-1.,0.,1.);}',
+'float box(vec3 d,vec3 C,vec3 U,vec3 V,vec2 hs,float s){float c=dot(d,C);if(c<=0.)return 0.;vec3 p=d/c;vec2 q=abs(vec2(dot(p,U),dot(p,V)))-hs;return smoothstep(s,0.,max(q.x,q.y));}',
+'float keyShape(vec3 d){float k=dot(d,uL0);if(k<.99)return 0.;vec3 t1=normalize(cross(uL0,vec3(0.,1.,0.))),t2=cross(uL0,t1);',
+' vec3 p=d/k-uL0;float u=abs(dot(p,t1)),v=abs(dot(p,t2));float o=max(max(u,v),(u+v)*.7071);',
+' float frame=step(.004,abs(u))*step(.004,abs(v));return smoothstep(.046,.043,o)*(.82+.18*frame);}',
+'vec3 stars(vec3 d){if(d.y<-.05||uStars<.5)return vec3(0.);float th=atan(d.z,d.x),ph=asin(clamp(d.y,-1.,1.));float cs=.21;vec2 id=floor(vec2(th,ph)/cs);vec2 r=h22(id);',
+' if(r.x<=uStarTh)return vec3(0.);vec2 ctr=(id+.25+.5*h22(id+3.7))*cs;vec2 dd=vec2((th-ctr.x)*cos(ph),ph-ctr.y);float rad=.018+.022*r.y;',
+' float an=h21(id+9.1)*3.1416;dd=mat2(cos(an),-sin(an),sin(an),cos(an))*dd;vec2 hs=vec2(rad,rad*(.35+.6*h21(id+4.4)));',
+' float e=max(abs(dd.x)/hs.x,abs(dd.y)/hs.y);',
+' return uStarC*mix(vec3(1.,.92,.8),vec3(.84,.92,1.),r.y)*(6.+30.*fract(r.x*7.31))*smoothstep(1.,.88,e);}',
+'vec3 envBase(vec3 d){',
+' float y=d.y;vec3 c=mix(uBgB,uBgT,smoothstep(-.1,1.,y));',
+' if(y<0.)c=mix(uBelow,uBelow*.16,smoothstep(-.15,-.9,y));',
+' float k=dot(d,uL0);',
+' c+=uKeyC*(80.*keyShape(d)+uHalo*.3*pow(max(k,0.),60.));',
+' c+=uBC[0]*box(d,uBox[0],uBox[1],uBox[2],vec2(.17,.95),.05);',
+' c+=uBC[1]*box(d,uBox[3],uBox[4],uBox[5],vec2(.15,.85),.05);',
+' c+=uBC[2]*box(d,uBox[6],uBox[7],uBox[8],vec2(.75,.45),.12);',
+' return c;}',
+'vec3 envW(vec3 d){return envBase(d)+stars(d);}',
+'vec3 envRefl(vec3 d){vec3 c=mix(uBgB,uBgT,smoothstep(-.1,1.,d.y));c+=uBC[0]*box(d,uBox[0],uBox[1],uBox[2],vec2(.17,.95),.1)+uBC[1]*box(d,uBox[3],uBox[4],uBox[5],vec2(.15,.85),.1)+uBC[2]*box(d,uBox[6],uBox[7],uBox[8],vec2(.75,.45),.15);return c;}',
+'vec3 envP(vec3 d){vec3 c=envW(uQ*d);return c*mix(1.,.06,smoothstep(.89,.975,dot(d,uHead)));}',
+'vec3 lightC(vec3 d){float k=max(dot(d,uL),0.);return uKeyC*(7.*pow(k,70.)+.25*pow(k,3.));}',
+'vec3 envAny(vec3 d,float m){return m<.5?envP(d):lightC(d);}',
+// 알렉산드라이트: 차가운 햇빛(왼쪽·위 조명)과 따뜻한 백열등(뒤쪽 주광·오른쪽 조명)을 따로 받는다
+'void envSplit(vec3 dP,float m,out vec3 cl,out vec3 wm){if(m>.5){cl=vec3(0.);wm=lightC(dP)*vec3(1.,.8,.6);return;}',
+' vec3 d=uQ*dP;float y=d.y,k=dot(d,uL0);vec3 bg=mix(uBgB,uBgT,smoothstep(-.1,1.,y));',
+' if(y<0.)bg=mix(uBelow,uBelow*.16,smoothstep(-.15,-.9,y));vec3 st=stars(d);float kI=dot(uKeyC,vec3(.33)),b1=dot(uBC[1],vec3(.33)),b0=dot(uBC[0],vec3(.33)),b2=dot(uBC[2],vec3(.33));',
+' wm=vec3(1.,.55,.32)*3.8*uMix*(kI*(80.*keyShape(d)+.1*pow(max(k,0.),60.))+b1*box(d,uBox[3],uBox[4],uBox[5],vec2(.15,.85),.05))+st*vec3(1.,.75,.5)*.5;',
+' cl=vec3(.80,.93,1.15)*1.15*(1.-uMix)*(b0*box(d,uBox[0],uBox[1],uBox[2],vec2(.17,.95),.05)+b2*box(d,uBox[6],uBox[7],uBox[8],vec2(.75,.45),.12))+bg*(1.6-uMix)+st*vec3(.8,.95,1.2)*.5;',
+' float hd=mix(1.,.06,smoothstep(.89,.975,dot(dP,uHead)));cl*=hd;wm*=hd;}',
+// 내포물: 에메랄드의 이끼 같은 자르댕, 사파이어의 가는 실크(루틸 바늘)
+'vec2 inc(vec3 q){',
+' if(uIncl<1.5){float rr=1.-abs(fbm3(q*2.4+1.)*2.-1.);float sh=smoothstep(.91,.975,rr);',
+'  float mo=smoothstep(.58,.70,fbm3(q*7.+4.))*smoothstep(.42,.58,fbm3(q*1.3+9.));',
+'  return vec2(sh*2.2+mo*1.6,sh*2.2+mo*.5);}',
+' float s=0.;for(int i=0;i<3;i++){float a=float(i)*1.0472;vec2 dr=vec2(cos(a),sin(a));',
+'  float u=dot(q.xy,vec2(-dr.y,dr.x))*60.+vn3(q*4.+float(i))*6.;float ln=pow(abs(sin(u)),16.);',
+'  s+=ln*smoothstep(.68,.8,vn3(vec3(dot(q.xy,dr)*2.2,u*.05,q.z*4.+float(i)*7.)))*smoothstep(.45,.6,vn3(q*2.3+float(i)*3.));}',
+' return vec2(s*.35,s*1.2);}',
+'vec3 irr(vec3 nP,float wrap){vec3 W=uQ*nP;float k=dot(W,uL0);',
+' vec3 c=uKeyC*2.4*max((k+wrap)/(1.+wrap),0.);',
+' c+=uBC[0]*.24*max(dot(W,uBox[0]),0.)+uBC[1]*.25*max(dot(W,uBox[3]),0.)+uBC[2]*.55*max(dot(W,uBox[6]),0.);',
+' return c+(uBgT*1.2+vec3(.04,.037,.04))*(.6+.4*max(W.y,0.))+uBelow*.8*max(-W.y,0.);}',
+'bool sph(vec3 o,vec3 d,float r){float b=dot(o,d);float c=dot(o,o)-r*r;return b*b-c>0.&&(c<0.||b<0.);}',
+'bool hitPoly(vec3 o,vec3 d,out float tN,out float tF,out vec3 nN){tN=-1e9;tF=1e9;nN=vec3(0.,0.,1.);',
+' for(int i=0;i<MAXP;i++){if(i>=uNP)break;vec4 p=uP[i];float den=dot(p.xyz,d);float ds=p.w-dot(p.xyz,o);',
+'  if(abs(den)<1e-6){if(ds<0.)return false;}else{float t=ds/den;if(den<0.){if(t>tN){tN=t;nN=p.xyz;}}else tF=min(tF,t);}}',
+' return tN<tF&&tF>0.;}',
+'bool hitEll(vec3 o,vec3 d,out float tN,out float tF,out vec3 nN){vec3 oo=o/uEll,dd=d/uEll;float a=dot(dd,dd),b=dot(oo,dd),c=dot(oo,oo)-1.;',
+' float h=b*b-a*c;if(h<0.)return false;h=sqrt(h);tN=(-b-h)/a;tF=(-b+h)/a;nN=normalize((o+d*tN)/(uEll*uEll));',
+' if(uZc>-5.){float den=-d.z,ds=o.z-uZc;if(abs(den)<1e-6){if(ds<0.)return false;}else{float t=ds/den;if(den<0.){if(t>tN){tN=t;nN=vec3(0.,0.,-1.);}}else tF=min(tF,t);}}',
+' return tN<tF&&tF>0.;}',
+'bool hitShape(vec3 o,vec3 d,out float tN,out float tF,out vec3 nN){if(uKind<.5)return hitPoly(o,d,tN,tF,nN);return hitEll(o,d,tN,tF,nN);}',
+'float exitPoly(vec3 o,vec3 d,out vec3 n){float tm=1e9;n=vec3(0.,0.,1.);',
+' for(int i=0;i<MAXP;i++){if(i>=uNP)break;vec4 p=uP[i];float den=dot(p.xyz,d);if(den>1e-5){float t=(p.w-dot(p.xyz,o))/den;if(t<tm){tm=t;n=p.xyz;}}}return tm;}',
+'vec3 inside(vec3 p,vec3 r,float m){vec3 acc=vec3(0.),thr=vec3(1.),thr2=vec3(1.);',
+' for(int b=0;b<6;b++){if(float(b)>=uBounce)break;vec3 n;float t=exitPoly(p,r,n);',
+'  if(m<.5&&uIncl>.5&&b<2){float dt=t/6.;float fw=.3+.7*pow(max(dot(uR*r,uL),0.),3.);',
+'   for(int s=0;s<6;s++){vec3 q=p+r*(dt*(float(s)+.5));vec2 dn=inc(q);vec3 a=exp(-uAbs*dt*(float(s)+.5));',
+'    acc+=thr*a*dn.y*dt*fw*uInclC;thr*=exp(-dn.x*dt);thr2*=exp(-dn.x*dt);}}',
+'  p+=r*t;thr*=exp(-uAbs*t);thr2*=exp(-uAbs2*t);float c=dot(r,n);float k=1.-uN*uN*(1.-c*c);',
+'  if(k>0.){float ct=sqrt(k);float F=uF0+(1.-uF0)*pow(1.-ct,5.);',
+'   if(uAlex>.5){vec3 dd=refract(r,-n,uN);if(dot(dd,dd)>.5){vec3 cl,wm;envSplit(uR*dd,m,cl,wm);acc+=(1.-F)*(thr*cl+thr2*wm);}}',
+'   else{vec3 dr=refract(r,-n,uIOR.r),dg=refract(r,-n,uIOR.g),db=refract(r,-n,uIOR.b);vec3 e=vec3(0.);',
+'   if(dot(dr,dr)>.5)e.r=envAny(uR*dr,m).r;if(dot(dg,dg)>.5)e.g=envAny(uR*dg,m).g;if(dot(db,db)>.5)e.b=envAny(uR*db,m).b;',
+'   acc+=thr*(1.-F)*e;}thr*=F;thr2*=F;}',
+'  r=reflect(r,n);p-=n*2e-4;}',
+' return acc+(uAlex>.5?(thr+thr2)*.01:thr*.02);}',
+'vec3 vor(vec2 x){vec2 n=floor(x),f=fract(x);float d1=8.,d2=8.;vec2 id=vec2(0.);',
+' for(int j=-1;j<=1;j++)for(int i=-1;i<=1;i++){vec2 g=vec2(float(i),float(j));vec2 r=g+h22(n+g)-f;float d=dot(r,r);if(d<d1){d2=d1;d1=d;id=n+g;}else if(d<d2)d2=d;}',
+' return vec3(id,sqrt(d2)-sqrt(d1));}',
+'vec3 envSoft(vec3 dP){vec3 d=uQ*dP;float k=max(dot(d,uL0),0.);',
+' vec3 c=mix(uBgB+.016,uBgT*1.5+.045,smoothstep(-.2,1.,d.y));if(d.y<0.)c=uBelow*1.3+.01;',
+' c+=uKeyC*(9.*pow(k,220.)+1.1*pow(k,22.));',
+' c+=uBC[0]*.35*box(d,uBox[0],uBox[1],uBox[2],vec2(.17,.95),.5);',
+' c+=uBC[1]*.36*box(d,uBox[3],uBox[4],uBox[5],vec2(.15,.85),.5);',
+' c+=uBC[2]*.8*box(d,uBox[6],uBox[7],uBox[8],vec2(.75,.45),.6);',
+' c+=uWinC*(2.2*box(d,uWin[0],uWin[1],uWin[2],vec2(.13,.18),.12)+.5*pow(max(dot(d,uWin[0]),0.),16.));',
+' return c*mix(1.,.35,smoothstep(.85,.98,dot(dP,uHead)));}',
+'float pbump(vec3 p){float h=fbm3(p*1.9)*.55+fbm3(p*7.5+3.)*.22;',
+' h+=.07*sin(30.*p.z+4.*fbm3(p*1.4))*smoothstep(.2,.7,fbm3(p*1.1+8.));',
+' h-=.2*smoothstep(.72,.84,fbm3(p*13.+5.));return h*.06;}',
+'vec3 pbumpG(vec3 p){float e=.012;float h=pbump(p);return vec3(pbump(p+vec3(e,0,0))-h,pbump(p+vec3(0,e,0))-h,pbump(p+vec3(0,0,e))-h)/e;}',
+'vec3 surface(vec3 pl,vec3 nl,vec3 rd){',
+' vec3 nP=uR*nl;float cv=max(dot(nP,-rd),0.);vec3 R=(uKind>2.5&&uKind<3.5)?vec3(0.):envP(reflect(rd,nP));',
+' if(uKind>3.5){',   // 스타 사파이어: 세 방향 실크 바늘이 빛을 띠로 반사해 여섯 줄기 별을 만든다
+'  vec3 lL=uRT*uL,vL=-(uRT*rd),wl=uRT*uWinP;float ir=1./1.77;',
+'  vec3 Vi=refract(-vL,nl,ir),Li=refract(-lL,nl,ir),Wi=refract(-wl,nl,ir);',
+'  vec3 hl=normalize(Li+Vi),hw=normalize(Wi+Vi);float sl=0.,sw=0.;',
+'  for(int i=0;i<3;i++){float a=float(i)*1.0472+.3;vec3 tt=vec3(cos(a),sin(a),0.);float x=dot(hl,tt),y=dot(hw,tt);sl+=exp(-x*x*9000.);sw+=exp(-y*y*9000.);}',
+'  float vl=smoothstep(0.,.25,dot(nl,lL)),vw=smoothstep(0.,.25,dot(nl,wl));',
+'  float mic=fbm3(pl*5.);vec3 body=vec3(.015,.035,.17)*(.75+.5*mic);',
+'  vec3 silk=vec3(.16,.24,.55)*(.4+.6*fbm3(pl*9.+2.));',
+'  float F=.077+.923*pow(1.-cv,5.);vec3 star=vec3(.80,.86,1.)*(sl*vl*.35*dot(uKeyC,vec3(.33))+sw*vw*1.1*dot(uWinC,vec3(.33)));',
+'  return (1.-F)*(body*irr(nP,.4)*.65+silk*irr(nP,.8)*.10+star)+F*R;}',
+' if(uKind<1.5){',   // 터키석
+'  vec3 q=pl*2.3;float v=fbm(q);float rg=1.-abs(fbm(q*1.6+5.)*2.-1.);',
+'  vec3 base=mix(vec3(.035,.30,.28),vec3(.10,.46,.40),smoothstep(.3,.72,v));',
+'  base=mix(base,vec3(.03,.022,.016),smoothstep(.88,.955,rg)*.92);',
+'  base=mix(base,vec3(.05,.036,.022),smoothstep(.70,.78,fbm(q*3.1+9.))*.55);',
+'  float F=.05+.95*pow(1.-cv,5.);return (1.-F)*base*irr(nP,.25)+F*R;}',
+' if(uKind<2.5){',   // 오팔
+'  vec3 lL=uRT*uL,vL=-(uRT*rd);vec3 h=normalize(lL+vL);vec3 fire=vec3(0.);',
+'  for(int L=0;L<3;L++){float fl=float(L);float dep=.04+.08*fl;',
+'   vec2 q=(pl.xy-vL.xy/max(vL.z,.3)*dep)*(8.+fl*3.)+fl*13.1;q+=vec2(vn(q*.7),vn(q*.7+4.))*.8;vec3 vo=vor(q);vec2 r=h22(vo.xy+fl*7.7);',
+'   vec3 g=normalize(vec3(r*2.-1.,.7));float a=dot(h,g);',
+'   float w=pow(clamp((a-.6)/.4,0.,1.),1.3)*(.4+.6*h21(vo.xy+3.3))*smoothstep(0.,.18,vo.z);',
+'   fire+=hue(fract(a*2.4+r.x*1.9+fl*.23))*w*(1.-.25*fl);}',
+'  vec3 body=vec3(.30,.34,.40)*(.85+.3*fbm(pl*3.));float F=.035+.965*pow(1.-cv,5.);',
+'  return (1.-F)*(body*irr(nP,.6)*.42+fire*1.5*(.25+.75*max(dot(nP,uL),0.))+vec3(.02,.025,.035))+F*R;}',
+ // 진주: 뿌옇고 실키한 진주층 — 흐릿한 광택, 우툴두툴한 표면, 둘레 고리, 작은 흠
+' vec3 gb=pbumpG(pl);vec3 nb=normalize(nl-.55*(gb-dot(gb,nl)*nl));nP=uR*nb;cv=max(dot(nP,-rd),0.);',
+' float spot=smoothstep(.70,.80,fbm(pl*11.+7.))+.6*smoothstep(.80,.86,fbm(pl*26.+3.));spot=clamp(spot,0.,1.);',
+' vec3 Rp=reflect(rd,nP);vec3 Wr=uQ*Rp;float kk=max(dot(Wr,uL0),0.),kw=max(dot(Wr,uWin[0]),0.);',
+' float mic=vn3(pl*16.)*.6+vn3(pl*41.)*.4;',
+' vec3 base=vec3(.93,.86,.77)*(.93+.12*mic);base=mix(base,vec3(.70,.62,.52),spot*.45);',
+' float rim=pow(1.-cv,1.8);',
+' vec3 diff=base*(irr(nP,.95)*.21+uWinC*.5*max(dot(uQ*nP,uWin[0])+.3,0.)*.42)*mix(1.,.80,rim);',
+' vec3 film=.5+.5*cos(6.2832*(kk*1.4+cv*.5+vec3(0.,.33,.67)+.25*mic));',
+' vec3 orient=mix(vec3(1.,.82,.86),film,.45)*(pow(kk,2.5)*.4+pow(kw,2.5)*.45)*(1.-.5*spot);',
+' vec3 sheen=vec3(.92,.90,.90)*rim*.16*(irr(nP,1.)*.35+.2);',
+' vec3 over=mix(vec3(.95,.74,.80),vec3(.74,.84,.80),smoothstep(.3,.7,vn3(pl*1.8+2.)))*rim*.13*irr(nP,.7);',
+' vec3 spec=envSoft(Rp)*(.035+.22*pow(1.-cv,4.))*(1.-.75*spot);',
+' spec+=uWinC*(.45*pow(kw,30.)+.30*pow(kw,7.))*(1.-.8*spot);',
+' return diff+orient+sheen+over+spec;}',
+'vec3 aces(vec3 x){return clamp(x*(2.51*x+.03)/(x*(2.43*x+.59)+.14),0.,1.);}',
+'vec3 floorCol(vec3 P,vec3 rd){',
+' vec2 xz=P.xz;float dist=length(P-uCam);float fd=smoothstep(16.,5.,dist);vec3 alb;float gl=0.;',
+' if(uFloor<.5){float n=vn(xz*9.)*.5+vn(xz*27.)*.33+vn(xz*71.)*.17;n=mix(.5,n,fd);alb=mix(vec3(.13,.12,.135),uTint*.16,.32)*(.8+.4*n);}',
+' else if(uFloor<1.5){float w=xz.x*1.1+xz.y*.35+vn(xz*.5)*2.6;float f=mix(.5,.5+.5*sin(w*2.2),fd);',
+'  alb=vec3(.80,.77,.72)*(.84+.2*f)*(.97+.03*vn(xz*60.));gl=1.;}',
+' else if(uFloor<2.5){vec2 m=xz*1.5+vec2(vn(xz*.7),vn(xz*.7+5.))*1.2;float f=vn(m*.9)*.5+vn(m*2.1+3.)*.3+vn(m*5.3)*.2;float r=1.-abs(f*2.-1.);',
+'  float ve=(smoothstep(.95,.995,r)*.85+.4*smoothstep(.965,.995,1.-abs(vn(m*3.7+9.)*2.-1.)))*fd;',
+'  alb=mix(vec3(.80,.79,.77),vec3(.32,.32,.34),clamp(ve,0.,1.))*(.95+.08*vn(xz*20.));gl=2.;}',
+' else{float g=xz.x*.9+vn(xz*vec2(.25,1.6))*1.4+vn(xz*vec2(.8,6.))*.25;float rg=mix(.5,.5+.5*sin(g*14.),fd);',
+'  alb=mix(vec3(.17,.085,.04),vec3(.33,.18,.085),rg)*(.88+.22*vn(xz*vec2(2.,30.)));gl=1.5;}',
+' vec2 lq=xz-uSpot;vec2 ld=normalize(uL.xz+vec2(1e-4));float al=dot(lq,ld),cr=dot(lq,vec2(-ld.y,ld.x));',
+' float el=length(vec2(al/(1.+.6*(1.-uL.y)),cr))/uPoolR;float beam=.92+.08*vn(xz*1.3+3.)+.04*vn(xz*4.);',
+' float pool=smoothstep(1.,.55,el)*(1.-.25*el*el)*beam+.05*smoothstep(1.6,.8,el);',
+' vec3 li=vec3(1.);vec3 o=uRT*(P-uG),d=uRT*uL;float tN,tF;vec3 nN;',
+' if(sph(o,d,uBR)&&hitShape(o,d,tN,tF,nN)){float sm=smoothstep(0.,.04+.16*tN,tF-tN);',
+'  if(uKind<.5){float ci=-dot(d,nN);float Fe=uF0+(1.-uF0)*pow(1.-ci,5.);',
+'   vec3 cs=(1.-Fe)*inside(o+d*tN-nN*2e-4,refract(d,nN,1./uN),1.);li=mix(vec3(1.),.2*exp(-uAbs*.8)+cs*2.4,sm);}',
+'  else li=mix(vec3(1.),uShTint,sm);}',
+' float ndl=max(uL.y,0.);vec3 col=alb*(uPoolC*ndl*pool*li+uAmb);',
+' if(gl>.5){vec3 rr=reflect(rd,vec3(0.,1.,0.));float kr=max(dot(rr,uL),0.);',
+'  if(gl<1.2)col+=uPoolC*.08*pow(kr,5.)*li*pool;',
+'  else if(gl<1.7)col+=uPoolC*.05*pow(kr,24.)*li*pool+envRefl(uQ*rr)*.015*fd;',
+'  else col+=envRefl(uQ*rr)*.06*fd+uPoolC*.2*pow(kr,140.)*li;}',
+' return col;}',
+'void main(){',
+' vec2 q=gl_FragCoord.xy/uRes*2.-1.;',
+' vec3 rd=normalize(uFwd+uRight*q.x*uTan.x+uUp*(q.y-uShift)*uTan.y);',
+' vec3 col;float tf=rd.y<0.?-uCam.y/rd.y:1e9;',
+' vec3 o=uRT*(uCam-uG),d=uRT*rd;float tN,tF;vec3 nN;bool hit=false;',
+' if(sph(o,d,uBR))hit=hitShape(o,d,tN,tF,nN);',
+' if(hit){',
+'  if(uKind<.5){float ci=-dot(d,nN);float Fr=uF0+(1.-uF0)*pow(1.-ci,5.);',
+'   col=Fr*envP(uR*reflect(d,nN))+(1.-Fr)*inside(o+d*tN-nN*2e-4,refract(d,nN,1./uN),0.);}',
+'  else col=surface(o+d*tN,nN,rd);}',
+' else if(tf<1e8)col=floorCol(uCam+rd*tf,rd);else col=vec3(.004,.004,.006);',
+' col*=uExpo;float lum=dot(col,vec3(.2126,.7152,.0722));',
+' gl_FragColor=vec4(pow(aces(col),vec3(1./2.2)),clamp((lum-.85)/5.,0.,1.));}'
+].join('\n');
+
+var DOWN='precision mediump float;varying vec2 v;uniform sampler2D t;uniform vec2 px;'+
+'vec3 s(vec2 o){vec4 c=texture2D(t,v+o*px);return c.rgb*c.a;}'+
+'void main(){gl_FragColor=vec4((s(vec2(-1,-1))+s(vec2(1,-1))+s(vec2(-1,1))+s(vec2(1,1)))*.25,1.);}';
+var BLUR='precision mediump float;varying vec2 v;uniform sampler2D t;uniform vec2 dir;'+
+'void main(){vec3 c=texture2D(t,v).rgb*.227;'+
+'c+=(texture2D(t,v+dir*1.385).rgb+texture2D(t,v-dir*1.385).rgb)*.316;'+
+'c+=(texture2D(t,v+dir*3.231).rgb+texture2D(t,v-dir*3.231).rgb)*.070;gl_FragColor=vec4(c,1.);}';
+var STREAK='precision mediump float;varying vec2 v;uniform sampler2D t;uniform vec2 d1,d2;'+
+'void main(){vec3 s=vec3(0.);for(int i=1;i<=14;i++){float f=float(i)*1.6;float w=exp(-float(i)*.3);'+
+'s+=(texture2D(t,v+d1*f).rgb+texture2D(t,v-d1*f).rgb+texture2D(t,v+d2*f).rgb+texture2D(t,v-d2*f).rgb)*w;}'+
+'gl_FragColor=vec4(s*.42,1.);}';
+// FXAA: 면 경계와 윤곽의 계단을 매끄럽게
+var FXAA='precision highp float;varying vec2 v;uniform sampler2D t;uniform vec2 px;'+
+'void main(){vec3 L=vec3(.299,.587,.114);vec4 cM=texture2D(t,v);'+
+'float nw=dot(texture2D(t,v+vec2(-1.,-1.)*px).rgb,L),ne=dot(texture2D(t,v+vec2(1.,-1.)*px).rgb,L),'+
+'sw=dot(texture2D(t,v+vec2(-1.,1.)*px).rgb,L),se=dot(texture2D(t,v+vec2(1.,1.)*px).rgb,L),m=dot(cM.rgb,L);'+
+'float mn=min(m,min(min(nw,ne),min(sw,se))),mx=max(m,max(max(nw,ne),max(sw,se)));'+
+'vec2 d=vec2(-((nw+ne)-(sw+se)),(nw+sw)-(ne+se));float red=max((nw+ne+sw+se)*.03125,1./128.);'+
+'float rc=1./(min(abs(d.x),abs(d.y))+red);d=clamp(d*rc,-8.,8.)*px;'+
+'vec3 a=.5*(texture2D(t,v+d*(1./3.-.5)).rgb+texture2D(t,v+d*(2./3.-.5)).rgb);'+
+'vec3 b=a*.5+.25*(texture2D(t,v-d*.5).rgb+texture2D(t,v+d*.5).rgb);float lb=dot(b,L);'+
+'gl_FragColor=vec4((lb<mn||lb>mx)?a:b,cM.a);}';
+var COMP='precision mediump float;varying vec2 v;uniform sampler2D a,b,s;uniform float asp,tm,fade,vig;'+
+'float h(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}'+
+'void main(){vec3 c=texture2D(a,v).rgb+texture2D(b,v).rgb*.5+texture2D(s,v).rgb*.6;'+
+'vec2 w=(v-vec2(.5,.56))*vec2(asp,1.);c*=mix(vig,1.,smoothstep(.95,.15,length(w)));'+
+'c*=fade;c+=(h(gl_FragCoord.xy+tm)-.5)/255.;gl_FragColor=vec4(c,1.);}';
+
+function sh(type,src){var s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(s));return s;}
+function prog(fs){var p=gl.createProgram();gl.attachShader(p,sh(gl.VERTEX_SHADER,VS));gl.attachShader(p,sh(gl.FRAGMENT_SHADER,fs));gl.bindAttribLocation(p,0,'p');gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw new Error(gl.getProgramInfoLog(p));
+  var u={},n=gl.getProgramParameter(p,gl.ACTIVE_UNIFORMS);for(var i=0;i<n;i++){var inf=gl.getActiveUniform(p,i);var nm=inf.name.replace(/\[0\]$/,'');u[nm]=gl.getUniformLocation(p,nm);}return {p:p,u:u};}
+var PR;
+try{PR={scene:prog(SCENE),down:prog(DOWN),fxaa:prog(FXAA),blur:prog(BLUR),streak:prog(STREAK),comp:prog(COMP)};}
+catch(err){console.error(err);fail('그래픽을 준비하지 못했어요. 다른 브라우저로 열어 주세요.');return;}
+
+var buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
+function fbo(w,h){var t=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,t);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,w,h,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  var f=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,f);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,t,0);
+  return {f:f,t:t,w:w,h:h};}
+function freeF(o){if(o){gl.deleteFramebuffer(o.f);gl.deleteTexture(o.t);}}
+
+/* =========================================================
+   4. 장면과 행렬
+   ========================================================= */
+function mmul(a,b){var r=new Array(9);for(var c=0;c<3;c++)for(var rr=0;rr<3;rr++){r[c*3+rr]=a[rr]*b[c*3]+a[3+rr]*b[c*3+1]+a[6+rr]*b[c*3+2];}return r;}
+function tr(m){return [m[0],m[3],m[6],m[1],m[4],m[7],m[2],m[5],m[8]];}
+function mv(m,v){return [m[0]*v[0]+m[3]*v[1]+m[6]*v[2],m[1]*v[0]+m[4]*v[1]+m[7]*v[2],m[2]*v[0]+m[5]*v[1]+m[8]*v[2]];}
+function axisRot(a,t){var c=Math.cos(t),s=Math.sin(t),C=1-c,x=a[0],y=a[1],z=a[2];
+  return [c+x*x*C,y*x*C+z*s,z*x*C-y*s, x*y*C-z*s,c+y*y*C,z*y*C+x*s, x*z*C+y*s,y*z*C-x*s,c+z*z*C];}
+function rotZ(a){var c=Math.cos(a),s=Math.sin(a);return [c,s,0,-s,c,0,0,0,1];}
+function hex2lin(h){var n=parseInt(h.slice(1),16);return [n>>16&255,n>>8&255,n&255].map(function(x){return Math.pow(x/255,2.2);});}
+
+var TILT=28*DEG;
+var BASE=[1,0,0, 0,Math.sin(TILT),-Math.cos(TILT), 0,Math.cos(TILT),Math.sin(TILT)];
+var EL=38*DEG,DIST=7.5;
+var L0=norm([-0.2,0.8,-0.56]);
+function boxAxes(C,ref){C=norm(C);var U=norm(cross(ref,C));var V=cross(C,U);return C.concat(U,V);}
+var WIN=boxAxes([-0.45,0.75,0.5],[0,1,0]);
+var BOX=[].concat(boxAxes([-0.85,0.42,0.38],[0,1,0]),boxAxes([0.92,0.5,-0.15],[0,1,0]),boxAxes([0.05,1,-0.3],[0,0,1]));
+var ROUNDISH={round:1,rose:1,pearl:1,cabRound:1};
+
+// 보석마다 한 번만 계산해 둔다
+function prepare(st){
+  if(st.ready)return st;
+  var v=null,planes=new Float32Array(MAXP*4),np=0,br,ell=[1,1,1],zc=-10,pts;
+  if(st.kind===0){
+    v=cutVerts(st.geo);var P=hullPlanes(v);np=Math.min(MAXP,P.length/4);
+    if(P.length/4>MAXP)console.warn(st.en+' planes',P.length/4);
+    planes.set(P.slice(0,np*4));br=0;v.forEach(function(p){br=Math.max(br,Math.hypot(p[0],p[1],p[2]));});pts=v;
+  }else{
+    if(st.geo==='pearl'){ell=[0.88,0.88,0.88];zc=-10;}
+    else if(st.geo==='cabOval'){ell=[0.74,1.02,0.56];zc=-0.04;}
+    else if(st.geo==='cabStar'){ell=[0.78,0.92,0.70];zc=-0.04;}
+    else{ell=[0.95,0.95,0.58];zc=-0.04;}
+    br=Math.max(ell[0],ell[1],ell[2]);pts=[];
+    for(var i=0;i<24;i++)for(var j=0;j<12;j++){var a=i/24*2*Math.PI,b=(j/11-0.5)*Math.PI;var z=Math.sin(b)*ell[2];if(z<zc)z=zc;
+      pts.push([Math.cos(a)*Math.cos(b)*ell[0],Math.sin(a)*Math.cos(b)*ell[1],z]);}
+  }
+  // 가장 낮은 점이 바닥에서 0.42 위에 뜨도록
+  var minY=1e9;[0,0.3,-0.3,0.8,1.6].forEach(function(sp){var R=mmul(BASE,rotZ(sp));pts.forEach(function(p){minY=Math.min(minY,mv(R,p)[1]);});});
+  st.G=[0,-minY+0.42,0];st.planes=planes;st.np=np;st.br=br*1.01;st.ell=ell;st.zc=zc;
+  var n=st.n||1.5,dsp=st.disp||0;
+  st.ior=[n-0.57*dsp,n+0.1*dsp,n+1.09*dsp];st.f0=Math.pow((n-1)/(n+1),2);
+  st.tint=hex2lin(st.c);
+  st.sht=st.kind===4?[0.10,0.12,0.22]:st.kind===2?[0.30,0.33,0.38]:st.kind===3?[0.3,0.28,0.28]:[0.16,0.18,0.18];
+  st.spin=!!ROUNDISH[st.geo];
+  st.ready=true;return st;
+}
+
+/* =========================================================
+   5. 해상도
+   ========================================================= */
+var A=null,A2=null,B=null,C2=null,D=null,E=null,W=0,Hh=0,scale=1,bounce=6,maxScale=1,dprCap=Math.min(window.devicePixelRatio||1,2);
+function resize(){
+  var w=Math.max(2,Math.round(window.innerWidth*dprCap*scale)),h=Math.max(2,Math.round(window.innerHeight*dprCap*scale));
+  if(w===W&&h===Hh)return;W=w;Hh=h;canvas.width=w;canvas.height=h;
+  [A,A2,B,C2,D,E].forEach(freeF);
+  A=fbo(w,h);A2=fbo(w,h);var qw=Math.max(1,w>>2),qh=Math.max(1,h>>2);B=fbo(qw,qh);C2=fbo(qw,qh);D=fbo(qw,qh);E=fbo(qw,qh);
+}
+window.addEventListener('resize',resize);resize();
+
+/* =========================================================
+   6. 상태·입력
+   ========================================================= */
+var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var tgt={x:0,y:0},cur={x:0,y:0},base=null,gyro=false,lastGyro=0,lastTouch=-1e9;
+var ZMIN=1,ZMAX=3.5,zoomT=1,zoom=1;
+var STILL=/^#still/.test(location.hash),HP=location.hash.split(',');
+var idx=3,alt=false;var hm=/^#m(\d{1,2})(a?)$/.exec(location.hash);
+if(hm&&+hm[1]>=1&&+hm[1]<=12){idx=+hm[1]-1;alt=!!hm[2]&&!!ALTS[idx];}else idx=new Date().getMonth();
+function stoneOf(i,a){return a&&ALTS[i]?ALTS[i]:STONES[i];}
+var shownSt=stoneOf(idx,alt),fade=1,fadeDir=0,swapT=0;
+
+function onOri(e){
+  if(e.beta==null||e.gamma==null)return;
+  var o=(screen.orientation&&screen.orientation.angle)||window.orientation||0;
+  var b=e.beta,g=e.gamma,x,y;
+  if(o===90){x=-g;y=b;}else if(o===-90||o===270){x=g;y=-b;}else{x=b;y=g;}
+  if(!base)base={x:x,y:y};
+  base.x+=(x-base.x)*0.004;base.y+=(y-base.y)*0.004;
+  tgt.x=Math.max(-40,Math.min(40,(x-base.x)*1.25))*DEG;
+  tgt.y=Math.max(-40,Math.min(40,(y-base.y)*1.25))*DEG;
+  gyro=true;lastGyro=performance.now();
+}
+
+// 포인터: 한 손가락 = 기울이기(센서 없을 때) 또는 넘기기(센서 있을 때), 두 손가락 = 확대
+var ptrs={},drag=null,pinch=null,lastTap=0;
+function setZoom(z){zoomT=Math.max(ZMIN,Math.min(ZMAX,z));}
+canvas.addEventListener('pointerdown',function(e){
+  ptrs[e.pointerId]={x:e.clientX,y:e.clientY};canvas.setPointerCapture&&canvas.setPointerCapture(e.pointerId);
+  var ids=Object.keys(ptrs);
+  if(ids.length===2){var a=ptrs[ids[0]],b=ptrs[ids[1]];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),z:zoomT};drag=null;return;}
+  var now=performance.now();
+  if(now-lastTap<300){setZoom(zoomT>1.4?1:2.4);lastTap=0;}else lastTap=now;
+  drag={x:e.clientX,y:e.clientY,ox:tgt.x,oy:tgt.y,t:now,moved:false};lastTouch=now;
+});
+canvas.addEventListener('pointermove',function(e){
+  if(!ptrs[e.pointerId])return;ptrs[e.pointerId]={x:e.clientX,y:e.clientY};
+  var ids=Object.keys(ptrs);
+  if(pinch&&ids.length>=2){var a=ptrs[ids[0]],b=ptrs[ids[1]];setZoom(pinch.z*Math.hypot(a.x-b.x,a.y-b.y)/Math.max(10,pinch.d));return;}
+  if(!drag)return;var dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>8)drag.moved=true;
+  if(!gyro){var s=Math.min(window.innerWidth,window.innerHeight);
+    tgt.x=Math.max(-0.75,Math.min(0.75,drag.ox+dy/s*1.6));tgt.y=Math.max(-0.75,Math.min(0.75,drag.oy+dx/s*1.6));}
+  lastTouch=performance.now();
+});
+function endPtr(e){
+  var had=ptrs[e.pointerId];delete ptrs[e.pointerId];
+  if(Object.keys(ptrs).length<2)pinch=null;
+  if(drag&&had&&gyro){var dx=had.x-drag.x,dy=had.y-drag.y;
+    if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5&&performance.now()-drag.t<700)go(idx+(dx<0?1:-1));}
+  if(Object.keys(ptrs).length===0)drag=null;
+}
+canvas.addEventListener('pointerup',endPtr);canvas.addEventListener('pointercancel',endPtr);
+canvas.addEventListener('wheel',function(e){e.preventDefault();setZoom(zoomT*Math.exp(-e.deltaY*0.0015));},{passive:false});
+document.getElementById('zin').addEventListener('click',function(){setZoom(zoomT*1.4);});
+document.getElementById('zout').addEventListener('click',function(){setZoom(zoomT/1.4);});
+document.getElementById('prev').addEventListener('click',function(){go(idx-1);});
+document.getElementById('next').addEventListener('click',function(){go(idx+1);});
+window.addEventListener('keydown',function(e){
+  if(e.key==='ArrowRight')go(idx+1);else if(e.key==='ArrowLeft')go(idx-1);
+  else if(e.key==='+'||e.key==='=')setZoom(zoomT*1.4);else if(e.key==='-')setZoom(zoomT/1.4);});
+
+// 달 칩
+var monthsEl=document.getElementById('months');
+STONES.forEach(function(s,i){var b=document.createElement('button');b.type='button';b.style.setProperty('--c',s.c);
+  b.setAttribute('aria-label',s.m+'월 '+s.ko);b.innerHTML='<i></i><b>'+s.m+'</b>';b.addEventListener('click',function(){go(i);});monthsEl.appendChild(b);});
+var el={mon:document.getElementById('mon'),cut:document.getElementById('cut'),ko:document.getElementById('ko'),en:document.getElementById('en'),
+  mean:document.getElementById('meaning'),spec:document.getElementById('spec'),info:document.getElementById('info'),zval:document.getElementById('zval')};
+var altEl=document.getElementById('alt'),monTxt=['',''],zoomed=false;
+function label(i){var s=stoneOf(i,alt),A=ALTS[i];
+  if(A){altEl.style.visibility='visible';altEl.innerHTML='';[STONES[i],A].forEach(function(o,j){var b=document.createElement('button');b.type='button';
+    b.textContent=o.ko;b.setAttribute('aria-pressed',(j===1)===alt?'true':'false');b.addEventListener('click',function(){go(i,j===1);});altEl.appendChild(b);});}
+  else{altEl.style.visibility='hidden';altEl.innerHTML='';}
+  monTxt=[s.m+'월의 탄생석',s.m+'월 · '+s.ko];el.mon.textContent=monTxt[zoomed?1:0];el.cut.textContent=s.cut;el.ko.textContent=s.ko;el.en.textContent=s.en;
+  el.mean.textContent=s.mean;el.spec.textContent=s.spec;document.documentElement.style.setProperty('--accent',s.c);
+  Array.prototype.forEach.call(monthsEl.children,function(b,j){b.setAttribute('aria-current',j===i?'true':'false');});
+  try{history.replaceState(null,'','#m'+s.m+(alt?'a':''));}catch(e){}
+}
+function go(i,a){i=(i+12)%12;a=!!a&&!!ALTS[i];if(i===idx&&a===alt)return;idx=i;alt=a;label(i);prepare(stoneOf(i,a));
+  if(reduce){shownSt=stoneOf(i,a);fade=1;fadeDir=0;}else fadeDir=-1;}
+label(idx);prepare(shownSt);
+// 쉬는 동안 나머지 보석도 미리 계산
+(function pre(k){if(k>=12)return;setTimeout(function(){prepare(STONES[k]);if(ALTS[k])prepare(ALTS[k]);pre(k+1);},120);})(0);
+
+var sheet=document.getElementById('sheet'),hint=document.getElementById('hint');
+var lightName=document.getElementById('lightName'),floorName=document.getElementById('floorName');
+function looks(){lightName.textContent=LIGHTS[lightI].name;floorName.textContent=FLOORS[floorI].name;
+  try{localStorage.setItem('gem.light',lightI);localStorage.setItem('gem.floor',floorI);}catch(e){}}
+looks();
+document.getElementById('lightBtn').addEventListener('click',function(){lightI=(lightI+1)%LIGHTS.length;looks();showHint(LIGHTS[lightI].name+' 조명');});
+document.getElementById('floorBtn').addEventListener('click',function(){floorI=(floorI+1)%FLOORS.length;looks();showHint(FLOORS[floorI].name+' 바닥');});
+var hintT=0;
+function showHint(t){hint.textContent=t;hint.classList.remove('off');clearTimeout(hintT);hintT=setTimeout(function(){hint.classList.add('off');},2600);}
+document.getElementById('go').addEventListener('click',function(){
+  sheet.classList.add('gone');
+  var DOE=window.DeviceOrientationEvent;
+  function listen(){window.addEventListener('deviceorientation',onOri);
+    setTimeout(function(){showHint(gyro?'기울이고, 옆으로 넘기고, 두 손가락으로 확대':'끌어서 기울이고, 두 손가락으로 확대');},900);}
+  if(DOE&&typeof DOE.requestPermission==='function'){
+    DOE.requestPermission().then(function(r){if(r==='granted')listen();else showHint('끌어서 기울이고, 두 손가락으로 확대');})
+      .catch(function(){showHint('끌어서 기울이고, 두 손가락으로 확대');});
+  }else if(DOE){listen();}else showHint('끌어서 기울이고, 두 손가락으로 확대');
+});
+
+/* =========================================================
+   7. 그리기
+   ========================================================= */
+function use(pr){gl.useProgram(pr.p);return pr.u;}
+function target(o){if(o){gl.bindFramebuffer(gl.FRAMEBUFFER,o.f);gl.viewport(0,0,o.w,o.h);}else{gl.bindFramebuffer(gl.FRAMEBUFFER,null);gl.viewport(0,0,W,Hh);}}
+function tex(unit,o){gl.activeTexture(gl.TEXTURE0+unit);gl.bindTexture(gl.TEXTURE_2D,o.t);}
+function draw(){gl.drawArrays(gl.TRIANGLES,0,3);}
+
+var t0=performance.now(),last=t0,slowAcc=0,fastAcc=0,lastZShown='';
+function frame(now){
+  var dt=Math.min(0.1,(now-last)/1000);last=now;var t=(now-t0)/1000;
+  if(!reduce&&(!gyro||now-lastGyro>1500)&&!drag&&!pinch&&now-lastTouch>2500){
+    tgt.x=0.20*Math.sin(t*0.37)+0.08*Math.sin(t*0.83+1.3);tgt.y=0.26*Math.sin(t*0.29+0.6)+0.07*Math.sin(t*0.91);
+  }
+  var k=1-Math.exp(-dt*7);cur.x+=(tgt.x-cur.x)*k;cur.y+=(tgt.y-cur.y)*k;
+  zoom+=(zoomT-zoom)*(1-Math.exp(-dt*9));
+  var zs=zoom.toFixed(1)+'×';if(zs!==lastZShown){el.zval.textContent=zs;lastZShown=zs;zoomed=zoom>1.35;el.info.classList.toggle('hide',zoomed);el.mon.textContent=monTxt[zoomed?1:0];el.mon.classList.toggle('big',zoomed);}
+
+  // 페이지 전환: 어두워졌다가 새 보석으로 밝아짐
+  if(fadeDir<0){fade-=dt/0.22;if(fade<=0){fade=0;shownSt=stoneOf(idx,alt);fadeDir=1;swapT=t;}}
+  else if(fadeDir>0){fade+=dt/0.45;if(fade>=1){fade=1;fadeDir=0;}}
+  var st=shownSt;prepare(st);
+
+  var GEM=st.G;
+  var CAM=[0,GEM[1]+DIST*Math.sin(EL),DIST*Math.cos(EL)];
+  var FWD=norm(sub(GEM,CAM)),RIGHT=norm(cross(FWD,[0,1,0])),UP=cross(RIGHT,FWD),HEAD=norm(sub(CAM,GEM));
+  var Qm=mmul(axisRot(UP,cur.y),axisRot(RIGHT,cur.x));
+  var Lp=mv(tr(Qm),L0);
+  var since=t-swapT,intro=reduce?0:Math.exp(-since*3.2)*0.6;
+  var spin=reduce?0.4:(st.spin?t*(2*Math.PI/150):0.22*Math.sin(t*0.21))+intro;
+  var R=mmul(BASE,rotZ(spin));
+  var shd=Lp[1]>0.15?[GEM[0]-Lp[0]*GEM[1]/Lp[1],GEM[2]-Lp[2]*GEM[1]/Lp[1]]:[0,1.5];
+
+  var asp=W/Hh,tx=1.55/DIST,ty=tx/asp,shift=0.30;
+  if(ty<2.55/DIST){ty=2.55/DIST;tx=ty*asp;shift=0.12;}
+  var zf=(zoom-1)/(ZMAX-1);tx/=zoom;ty/=zoom;shift=shift*(1-zf)*(1-0.25*Math.min(1,zoom-1))+0.04*zf;
+
+  target(A);var u=use(PR.scene);
+  gl.uniform4fv(u.uP,st.planes);gl.uniform1i(u.uNP,st.np);gl.uniform2f(u.uRes,W,Hh);
+  gl.uniform3fv(u.uCam,CAM);gl.uniform3fv(u.uFwd,FWD);gl.uniform3fv(u.uRight,RIGHT);gl.uniform3fv(u.uUp,UP);
+  gl.uniform3fv(u.uG,GEM);gl.uniform3fv(u.uL,Lp);gl.uniform3fv(u.uL0,L0);gl.uniform3fv(u.uHead,HEAD);
+  gl.uniform3fv(u.uIOR,st.ior);gl.uniform3fv(u.uAbs,st.abs||[0,0,0]);gl.uniform3fv(u.uEll,st.ell);gl.uniform3fv(u.uTint,st.tint);gl.uniform3fv(u.uShTint,st.sht);
+  gl.uniform2f(u.uTan,tx,ty);gl.uniform1f(u.uShift,shift);gl.uniform1f(u.uExpo,st.expo*LIGHTS[lightI].expo);
+  gl.uniform1f(u.uKind,st.kind);gl.uniform1f(u.uN,st.n||1.5);gl.uniform1f(u.uF0,st.f0);gl.uniform1f(u.uZc,st.zc);gl.uniform1f(u.uBR,st.br);gl.uniform1f(u.uStars,st.kind===0?1:0);var LT=LIGHTS[lightI],FL=FLOORS[floorI];
+  gl.uniform1f(u.uAlex,st.alex||0);gl.uniform1f(u.uBounce,bounce);gl.uniform1f(u.uMix,Math.min(.98,Math.max(.02,0.5+0.5*Math.tanh((cur.y-cur.x*0.6)*3.5)+LT.alex)));
+  gl.uniform3fv(u.uKeyC,LT.key);gl.uniform3fv(u.uBC,[].concat(LT.bc[0],LT.bc[1],LT.bc[2]));gl.uniform3fv(u.uBgT,LT.bgT);gl.uniform3fv(u.uBgB,LT.bgB);
+  var alb=floorI===3?[FL.alb*1.3,FL.alb*.75,FL.alb*.45]:[FL.alb,FL.alb*.97,FL.alb*.95];
+  gl.uniform3fv(u.uBelow,[0,1,2].map(function(j){return alb[j]*(LT.pool[j]*.2+LT.amb[j]*.5)+LT.bgB[j];}));
+  gl.uniform3fv(u.uStarC,LT.starC);gl.uniform1f(u.uStarTh,LT.starTh);gl.uniform1f(u.uHalo,LT.halo);
+  gl.uniform3fv(u.uPoolC,LT.pool);gl.uniform1f(u.uPoolR,LT.poolR);gl.uniform3fv(u.uAmb,LT.amb);gl.uniform3fv(u.uWinC,LT.win);gl.uniform1f(u.uFloor,floorI);gl.uniform1f(u.uIncl,st.incl||0);gl.uniform3fv(u.uAbs2,st.abs2||[0,0,0]);gl.uniform3fv(u.uInclC,st.inclC||[0,0,0]);
+  gl.uniform2f(u.uSpot,(GEM[0]+shd[0])*0.5,(GEM[2]+shd[1])*0.5);
+  gl.uniformMatrix3fv(u.uR,false,R);gl.uniformMatrix3fv(u.uRT,false,tr(R));gl.uniformMatrix3fv(u.uQ,false,Qm);
+  gl.uniform3fv(u.uBox,BOX);gl.uniform3fv(u.uWin,WIN);gl.uniform3fv(u.uWinP,mv(tr(Qm),WIN.slice(0,3)));
+  draw();
+
+  target(A2);u=use(PR.fxaa);tex(0,A);gl.uniform1i(u.t,0);gl.uniform2f(u.px,1/W,1/Hh);draw();
+  target(B);u=use(PR.down);tex(0,A2);gl.uniform1i(u.t,0);gl.uniform2f(u.px,1/W,1/Hh);draw();
+  target(C2);u=use(PR.blur);tex(0,B);gl.uniform1i(u.t,0);gl.uniform2f(u.dir,1/B.w,0);draw();
+  target(D);tex(0,C2);gl.uniform2f(u.dir,0,1/B.h);draw();
+  target(E);u=use(PR.streak);tex(0,B);gl.uniform1i(u.t,0);
+  var a1=22*DEG;gl.uniform2f(u.d1,Math.cos(a1)/B.w,Math.sin(a1)/B.h);gl.uniform2f(u.d2,-Math.sin(a1)/B.w,Math.cos(a1)/B.h);draw();
+  target(null);u=use(PR.comp);tex(0,A2);tex(1,D);tex(2,E);gl.uniform1i(u.a,0);gl.uniform1i(u.b,1);gl.uniform1i(u.s,2);
+  gl.uniform1f(u.asp,asp);gl.uniform1f(u.tm,t%7);gl.uniform1f(u.fade,fade*fade*(3-2*fade));gl.uniform1f(u.vig,LIGHTS[lightI].vig);draw();
+
+  if(dt>0.028){slowAcc+=dt;fastAcc=0;}else if(dt<0.015){fastAcc+=dt;slowAcc=0;}
+  // 느리면 먼저 빛 반사 횟수를 줄이고, 그래도 느릴 때만 해상도를 조금 낮춘다. 확대 중이고 여유가 있으면 해상도를 더 올린다.
+  maxScale=zoom>1.4?1.35:1;if(scale>maxScale+1e-3){scale=maxScale;resize();}
+  if(slowAcc>1.0){slowAcc=0;if(bounce>4)bounce=4;else if(scale>0.75){scale=Math.max(0.75,scale-0.1);resize();}}
+  if(fastAcc>2.5){fastAcc=0;if(scale<maxScale-1e-3){scale=Math.min(maxScale,scale+0.1);resize();}else if(bounce<6)bounce=6;}
+  if(STILL)return;
+  requestAnimationFrame(frame);
+}
+if(STILL){var hp=HP;idx=(parseInt(hp[1],10)||4)-1;alt=/a$/.test(hp[1]||'')&&!!ALTS[idx];shownSt=stoneOf(idx,alt);label(idx);reduce=true;tgt.x=cur.x=+(hp[2]||0);tgt.y=cur.y=+(hp[3]||0);zoom=zoomT=+(hp[4]||1);gyro=true;lastGyro=1e12;
+  if(hp[5])document.getElementById('sheet').classList.add('gone');if(hp[6])lightI=+hp[6];if(hp[7])floorI=+hp[7];looks();}
+requestAnimationFrame(frame);
+
+})();
+</script>
+
+</body>
+</html>
