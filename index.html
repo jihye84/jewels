@@ -98,6 +98,7 @@ button{font:inherit;color:inherit}
 .alt button{font-size:12.5px;letter-spacing:.04em;height:30px;padding:0 14px;border-radius:999px;border:1px solid var(--hair);background:none;color:var(--mist);cursor:pointer}
 .alt button[aria-pressed="true"]{background:var(--glint);color:var(--ink);border-color:var(--glint)}
 .info.hide{opacity:0;pointer-events:none}
+.dock{pointer-events:none}.dock .months,.dock .alt{pointer-events:auto}
 .name{display:flex;align-items:baseline;gap:10px}
 .name h2{margin:0;font-weight:700;font-size:clamp(24px,7vw,30px);letter-spacing:.06em}
 .name span{font-family:var(--italic);font-style:italic;font-size:19px;color:var(--accent)}
@@ -573,7 +574,7 @@ function prepare(st){
   // 가장 낮은 점이 바닥에서 0.42 위에 뜨도록
   var minY=1e9;[0,0.8,1.6,2.4].forEach(function(sp){[-1,0,1].forEach(function(a){[-1,0,1].forEach(function(b){
     var R=mmul(mmul(axisRot(UP0,b*HANDMAX),axisRot(RIGHT0,a*HANDMAX)),mmul(BASE,rotZ(sp)));pts.forEach(function(p){minY=Math.min(minY,mv(R,p)[1]);});});});});
-  st.G=[0,-minY+0.42,0];st.planes=planes;st.np=np;st.br=br*1.01;st.ell=ell;st.zc=zc;
+  st.G=[0,Math.max(-minY+0.42,br+0.32),0];st.planes=planes;st.np=np;st.br=br*1.01;st.ell=ell;st.zc=zc;
   var n=st.n||1.5,dsp=st.disp||0;
   st.ior=[n-0.57*dsp,n+0.1*dsp,n+1.09*dsp];st.f0=Math.pow((n-1)/(n+1),2);
   st.tint=hex2lin(st.c);
@@ -598,6 +599,7 @@ window.addEventListener('resize',resize);resize();
    6. 상태·입력
    ========================================================= */
 var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+var USER=[1,0,0,0,1,0,0,0,1],spinV={x:0,y:0},proj=null;
 var tgt={x:0,y:0},cur={x:0,y:0},vel={x:0,y:0},base=null,gyro=false,lastGyro=0,lastTouch=-1e9;
 var ZMIN=1,ZMAX=3.5,zoomT=1,zoom=1;
 var STILL=/^#still/.test(location.hash),HP=location.hash.split(',');
@@ -630,22 +632,33 @@ canvas.addEventListener('pointerdown',function(e){
   if(ids.length===2){var a=ptrs[ids[0]],b=ptrs[ids[1]];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),z:zoomT};drag=null;return;}
   var now=performance.now();
   if(now-lastTap<300){setZoom(zoomT>1.4?1:2.4);lastTap=0;}else lastTap=now;
-  drag={x:e.clientX,y:e.clientY,ox:tgt.x,oy:tgt.y,t:now,moved:false};lastTouch=now;
+  var g=onGem(e.clientX,e.clientY);if(g){spinV.x=spinV.y=0;}
+  drag={x:e.clientX,y:e.clientY,lx:e.clientX,ly:e.clientY,lt:now,t:now,moved:false,gem:g};lastTouch=now;
 });
+// 화면 좌표가 보석 위인지: 보석 중심을 화면에 투영해 둘레 반지름 안쪽인지 본다
+function onGem(cx,cy){if(!proj)return false;var v=sub(proj.G,proj.CAM),z=dot(v,proj.FWD);
+  var nx=dot(v,proj.RIGHT)/z/proj.tx,ny=dot(v,proj.UP)/z/proj.ty+proj.shift;
+  var w=window.innerWidth,h=window.innerHeight,px=(nx*.5+.5)*w,py=(1-(ny*.5+.5))*h;
+  var r=proj.br/z/proj.tx*w*.5*1.08;return Math.hypot(cx-px,cy-py)<r;}
+var ROT_K=3.3;
 canvas.addEventListener('pointermove',function(e){
   if(!ptrs[e.pointerId])return;ptrs[e.pointerId]={x:e.clientX,y:e.clientY};
   var ids=Object.keys(ptrs);
   if(pinch&&ids.length>=2){var a=ptrs[ids[0]],b=ptrs[ids[1]];setZoom(pinch.z*Math.hypot(a.x-b.x,a.y-b.y)/Math.max(10,pinch.d));return;}
   if(!drag)return;var dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>8)drag.moved=true;
-  if(!gyro){var s=Math.min(window.innerWidth,window.innerHeight);
-    tgt.x=Math.max(-0.68,Math.min(0.68,drag.ox+dy/s*1.6));tgt.y=Math.max(-0.68,Math.min(0.68,drag.oy+dx/s*1.6));}
-  lastTouch=performance.now();
+  var now=performance.now();
+  if(drag.gem){var s=Math.min(window.innerWidth,window.innerHeight)/Math.max(1,zoom),mx=e.clientX-drag.lx,my=e.clientY-drag.ly;
+    var ay=mx/s*ROT_K,ax=my/s*ROT_K;USER=mmul(mmul(axisRot(UP0,ay),axisRot(RIGHT0,ax)),USER);
+    var dtm=Math.max(.008,(now-drag.lt)/1000);spinV.x+=(ax/dtm-spinV.x)*.5;spinV.y+=(ay/dtm-spinV.y)*.5;
+    drag.lx=e.clientX;drag.ly=e.clientY;drag.lt=now;}
+  lastTouch=now;
 });
 function endPtr(e){
   var had=ptrs[e.pointerId];delete ptrs[e.pointerId];
   if(Object.keys(ptrs).length<2)pinch=null;
-  if(drag&&had&&gyro){var dx=had.x-drag.x,dy=had.y-drag.y;
-    if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.5&&performance.now()-drag.t<700)go(idx+(dx<0?1:-1));}
+  if(drag&&had){var dx=had.x-drag.x,dy=had.y-drag.y,now=performance.now();
+    if(drag.gem){if(now-drag.lt>90)spinV.x=spinV.y=0;var sp=Math.hypot(spinV.x,spinV.y);if(sp>9){spinV.x*=9/sp;spinV.y*=9/sp;}}
+    else if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy)*1.4&&now-drag.t<800)go(idx+(dx<0?1:-1));}
   if(Object.keys(ptrs).length===0)drag=null;
 }
 canvas.addEventListener('pointerup',endPtr);canvas.addEventListener('pointercancel',endPtr);
@@ -709,11 +722,11 @@ document.getElementById('go').addEventListener('click',function(){
   if(DME&&typeof DME.requestPermission==='function'){DME.requestPermission().then(function(r){if(r==='granted')window.addEventListener('devicemotion',onMot);}).catch(function(){});}
   else if(DME)window.addEventListener('devicemotion',onMot);
   function listen(){window.addEventListener('deviceorientation',onOri);
-    setTimeout(function(){showHint(gyro?'기울이고, 옆으로 넘기고, 두 손가락으로 확대':'끌어서 기울이고, 두 손가락으로 확대');},900);}
+    setTimeout(function(){showHint('보석을 쓸면 돌아가고, 바탕을 쓸면 다음 보석');},900);}
   if(DOE&&typeof DOE.requestPermission==='function'){
-    DOE.requestPermission().then(function(r){if(r==='granted')listen();else showHint('끌어서 기울이고, 두 손가락으로 확대');})
-      .catch(function(){showHint('끌어서 기울이고, 두 손가락으로 확대');});
-  }else if(DOE){listen();}else showHint('끌어서 기울이고, 두 손가락으로 확대');
+    DOE.requestPermission().then(function(r){if(r==='granted')listen();else showHint('보석을 쓸면 돌아가고, 바탕을 쓸면 다음 보석');})
+      .catch(function(){showHint('보석을 쓸면 돌아가고, 바탕을 쓸면 다음 보석');});
+  }else if(DOE){listen();}else showHint('보석을 쓸면 돌아가고, 바탕을 쓸면 다음 보석');
 });
 
 /* =========================================================
@@ -737,7 +750,8 @@ function frame(now){
   var zs=zoom.toFixed(1)+'×';if(zs!==lastZShown){el.zval.textContent=zs;lastZShown=zs;zoomed=zoom>1.35;el.info.classList.toggle('hide',zoomed);el.mon.textContent=monTxt[zoomed?1:0];el.mon.classList.toggle('big',zoomed);}
 
   // 페이지 전환: 어두워졌다가 새 보석으로 밝아짐
-  if(fadeDir<0){fade-=dt/0.22;if(fade<=0){fade=0;shownSt=stoneOf(idx,alt);fadeDir=1;swapT=t;}}
+  if(fadeDir<0){fade-=dt/0.22;if(fade<=0){fade=0;shownSt=stoneOf(idx,alt);fadeDir=1;swapT=t;USER=[1,0,0,0,1,0,0,0,1];spinV.x=spinV.y=0;}}
+  if(!(drag&&drag.gem)&&(spinV.x||spinV.y)){USER=mmul(mmul(axisRot(UP0,spinV.y*dt),axisRot(RIGHT0,spinV.x*dt)),USER);var fr=Math.exp(-dt*2.2);spinV.x*=fr;spinV.y*=fr;if(Math.abs(spinV.x)+Math.abs(spinV.y)<.01)spinV.x=spinV.y=0;}
   else if(fadeDir>0){fade+=dt/0.45;if(fade>=1){fade=1;fadeDir=0;}}
   var st=shownSt;prepare(st);
 
@@ -749,12 +763,12 @@ function frame(now){
   var Lp=mv(tr(Qm),L0);
   var since=t-swapT,intro=reduce?0:Math.exp(-since*3.2)*0.6;
   var spin=reduce?0.4:(st.spin?t*(2*Math.PI/150):0.22*Math.sin(t*0.21))+intro;
-  var R=mmul(HANDR,mmul(BASE,rotZ(spin)));
+  var R=mmul(HANDR,mmul(USER,mmul(BASE,rotZ(spin))));
   var shd=Lp[1]>0.15?[GEM[0]-Lp[0]*GEM[1]/Lp[1],GEM[2]-Lp[2]*GEM[1]/Lp[1]]:[0,1.5];
 
   var asp=W/Hh,tx=1.55/DIST,ty=tx/asp,shift=0.30;
   if(ty<2.55/DIST){ty=2.55/DIST;tx=ty*asp;shift=0.12;}
-  var zf=(zoom-1)/(ZMAX-1);tx/=zoom;ty/=zoom;shift=shift*(1-zf)*(1-0.25*Math.min(1,zoom-1))+0.04*zf;
+  var zf=(zoom-1)/(ZMAX-1);tx/=zoom;ty/=zoom;var PJ={G:GEM,CAM:CAM,FWD:FWD,RIGHT:RIGHT,UP:UP,tx:tx,ty:ty,br:st.br};shift=shift*(1-zf)*(1-0.25*Math.min(1,zoom-1))+0.04*zf;PJ.shift=shift;proj=PJ;
 
   target(A);var u=use(PR.scene);
   gl.uniform4fv(u.uP,st.planes);gl.uniform1i(u.uNP,st.np);gl.uniform2f(u.uRes,W,Hh);
