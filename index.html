@@ -555,7 +555,7 @@ function prog(fs){var p=gl.createProgram();gl.attachShader(p,sh(gl.VERTEX_SHADER
    ========================================================= */
 var BOXFS='precision highp float;\n'+[
 'uniform vec2 uRes,uTan;uniform vec3 uCam,uFwd,uRight,uUp,uKey;uniform float uShift,uLid,uGlow,uTime,uGemRot;',
-'const float BX=1.0,BZ=.66,BH=.74,LH=.46;',
+'const float BX=1.08,BZ=.66,BH=.72,LH=.56;',
 'const vec3 PL=vec3(0.,BH+.02,.05);const vec3 GLC=vec3(1.,.70,.36);',
 'float h21(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}',
 'float h31(vec3 p){p=fract(p*.3183099+.1);p*=17.;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}',
@@ -570,33 +570,47 @@ var BOXFS='precision highp float;\n'+[
 'vec3 lidL(vec3 p){vec3 q=p-vec3(0.,BH,-BZ);float c=cos(uLid),s=sin(uLid);return vec3(q.x,q.y*c-q.z*s,q.y*s+q.z*c);}',
 'float lidOuter(vec3 L){vec2 e=vec2((L.z-BZ)/BZ,L.y/LH);float de=(length(e)-1.)*LH;return max(max(de,-L.y),abs(L.x)-BX);}',
 'float baseOuter(vec3 p){return sdRB(p-vec3(0.,BH*.5,0.),vec3(BX,BH*.5,BZ),.035);}',
+'float lidOuterI(vec3 L,float k){vec2 e=vec2((L.z-BZ)/(BZ+k),L.y/(LH+k));float de=(length(e)-1.)*(LH+k);return max(max(de,-L.y),abs(L.x)-BX-k*.6);}',
 'vec2 mapX(vec3 p,bool withGem){',
 ' float bo=baseOuter(p);',
 ' float bc=sdRB(p-vec3(0.,BH-.26+.36,0.),vec3(BX-.1,.36,BZ-.1),.03);',
 ' vec2 r=vec2(max(bo,-bc),(-bc>bo)?2.:1.);',
+ // 도드라진 테두리 목재: 모서리 기둥, 위·아래·가운데 띠
+' float pf=max(abs(p.x)-(BX-.13),abs(p.y-BH*.5)-(BH*.5-.09));pf=max(pf,.04-abs(p.y-BH*.5));',
+' float ps=max(abs(p.z)-(BZ-.13),abs(p.y-BH*.5)-(BH*.5-.09));ps=max(ps,.04-abs(p.y-BH*.5));',
+' float fr=max(sdRB(p-vec3(0.,BH*.5,0.),vec3(BX+.018,BH*.5-.002,BZ+.018),.03),-min(pf,ps));fr=max(fr,-bc);',
+' if(fr<r.x)r=vec2(fr,6.);',
 ' float cu=sdRB(p-vec3(0.,BH-.33,0.),vec3(BX-.13,.13,BZ-.13),.12);cu=max(cu,-sdRB(p-vec3(0.,BH-.19,0.),vec3(.03,.08,BZ-.18),.02));if(cu<r.x)r=vec2(cu,2.);',
 ' if(withGem){vec3 gp=p-vec3(0.,BH-.09,0.);float cg=cos(uGemRot),sg=sin(uGemRot);gp.xz=mat2(cg,-sg,sg,cg)*gp.xz;gp.y*=1.25;float ge=sdOct(gp,.15)*.8;if(ge<r.x)r=vec2(ge,4.);}',
- // 놋쇠 징: 몸통 모서리 띠를 따라
+ // 가죽 끈 두 줄(앞면)과 놋쇠 버클
+' vec3 sp=vec3(abs(p.x)-.46,p.y,p.z);',
+' float sb=sdRB(sp-vec3(0.,BH*.5+.02,BZ+.03),vec3(.065,BH*.5-.03,.012),.008);if(sb<r.x)r=vec2(sb,7.);',
+' float bk=max(sdRB(sp-vec3(0.,BH*.5,BZ+.047),vec3(.085,.065,.01),.012),-sdRB(sp-vec3(0.,BH*.5,BZ+.047),vec3(.055,.038,.03),.006));',
+' if(bk<r.x)r=vec2(bk,3.);',
+ // 놋쇠 징
 ' vec3 a=vec3(abs(p.x),p.y,abs(p.z));float st=1e9;',
-' st=min(st,length(a-vec3(BX-.07,.07,BZ+.005))-.04);st=min(st,length(a-vec3(BX-.07,BH-.08,BZ+.005))-.04);',
-' st=min(st,length(a-vec3(BX+.005,.07,BZ-.09))-.04);st=min(st,length(a-vec3(BX+.005,BH-.08,BZ-.09))-.04);',
-' st=min(st,length(a-vec3(.42,.07,BZ+.005))-.035);',
+' for(int i=0;i<3;i++){float y=i==0?.05:(i==1?BH*.5:BH-.05);',
+'  st=min(st,length(a-vec3(BX-.065,y,BZ+.022))-.032);st=min(st,length(a-vec3(BX+.022,y,BZ-.065))-.032);}',
+' st=min(st,length(vec3(abs(sp.x),sp.y,sp.z)-vec3(0.,.17,BZ+.045))-.026);',
 ' if(st<r.x)r=vec2(st,3.);',
- // 앞면 걸쇠와 작은 자물쇠
-' float hp=sdRB(p-vec3(0.,BH-.1,BZ+.02),vec3(.11,.1,.018),.02);',
-' float lk=sdRB(p-vec3(0.,BH-.24,BZ+.05),vec3(.075,.07,.03),.03);',
-' float lr=sdTor((p-vec3(0.,BH-.13,BZ+.05)).xyz,vec2(.055,.014));',
-' float hs=min(min(hp,lk),lr);if(hs<r.x)r=vec2(hs,3.);',
- // 둥근 지붕 뚜껑
+ // 앞면 장식 자물쇠판과 자물쇠
+' vec3 q=p-vec3(0.,BH-.13,BZ+.03);',
+' float pl=sdRB(q,vec3(.15,.11,.01),.05);pl=min(pl,length(vec3(abs(q.x)-.15,q.y-.05,q.z*3.))/3.-.02);pl=min(pl,length(vec3(q.x,q.y+.12,q.z*3.))/3.-.025);',
+' float lk=sdRB(p-vec3(0.,BH-.27,BZ+.06),vec3(.085,.075,.028),.035);',
+' float lr=sdTor((p-vec3(0.,BH-.17,BZ+.06)).xyz,vec2(.05,.013));',
+' float hs=min(min(pl,lk),lr);if(hs<r.x)r=vec2(hs,3.);',
+ // 둥근 지붕 뚜껑: 판재, 양 끝 테두리 띠, 가죽 끈
 ' vec3 L=lidL(p);float lo=lidOuter(L);',
 ' vec2 ei=vec2((L.z-BZ)/(BZ-.09),L.y/(LH-.08));float lc=max(max((length(ei)-1.)*(LH-.08),-L.y-.05),abs(L.x)-(BX-.09));',
 ' float ld=max(lo,-lc);if(ld<r.x)r=vec2(ld,(-lc>lo)?2.:5.);',
- // 뚜껑 징과 손잡이
-' vec3 A=vec3(abs(L.x),L.y,L.z);float ls=1e9;for(int i=0;i<3;i++){float an=.55+float(i)*1.02;ls=min(ls,length(A-vec3(BX-.06,sin(an)*(LH+.008),BZ-cos(an)*(BZ+.008)))-.038);}',
-' if(ls<r.x)r=vec2(ls,3.);',
-' vec3 hq=L-vec3(0.,LH+.03,BZ);float hd=max(sdTor(hq,vec2(.3,.028)),-hq.y);',
-' hd=min(hd,sdRB(vec3(abs(hq.x)-.3,hq.y,hq.z),vec3(.05,.025,.035),.015));',
-' if(hd<r.x)r=vec2(hd,3.);',
+' float lb=max(lidOuterI(L,.018),(BX-.13)-abs(L.x));lb=min(lb,max(lidOuterI(L,.018),L.y-.06));lb=max(lb,-lc);if(lb<r.x)r=vec2(lb,6.);',
+' float ls=max(lidOuterI(L,.03),abs(abs(L.x)-.46)-.065);ls=max(ls,-lc);if(ls<r.x)r=vec2(ls,7.);',
+' vec3 A=vec3(abs(L.x),L.y,L.z);float lst=1e9;for(int i=0;i<5;i++){float an=.25+float(i)*.66;lst=min(lst,length(A-vec3(BX-.065,sin(an)*(LH+.02),BZ-cos(an)*(BZ+.02)))-.032);}',
+' if(lst<r.x)r=vec2(lst,3.);',
+ // 위 손잡이: 가죽 끈 고리와 놋쇠 받침
+' vec3 hq=L-vec3(0.,LH+.04,BZ);float hd=max(length(vec2(length(hq.xy)-.26,hq.z*.45))-.022,-hq.y-.02);',
+' if(hd<r.x)r=vec2(hd,7.);',
+' float hm=sdRB(vec3(abs(hq.x)-.26,hq.y,hq.z),vec3(.05,.02,.05),.015);if(hm<r.x)r=vec2(hm,3.);',
 ' return r;}',
 'vec3 nrm(vec3 p){vec2 e=vec2(.0015,-.0015);return normalize(e.xyy*mapX(p+e.xyy,true).x+e.yyx*mapX(p+e.yyx,true).x+e.yxy*mapX(p+e.yxy,true).x+e.xxx*mapX(p+e.xxx,true).x);}',
 'float soft(vec3 ro,vec3 rd,float tmax,float k){float res=1.,t=.02;for(int i=0;i<26;i++){float h=mapX(ro+rd*t,false).x;res=min(res,k*h/t);t+=clamp(h,.015,.22);if(res<.002||t>tmax)break;}return clamp(res,0.,1.);}',
@@ -625,26 +639,24 @@ var BOXFS='precision highp float;\n'+[
 '  else{vec3 Ls=keyL(p,n)+inner(p,n)+amb;float kv=soft(p+n*.012,uKey,6.,9.);',
 '   vec3 l=normalize(PL-p);float dl=length(PL-p);float iv=soft(p+n*.012,l,dl-.06,18.)/(1.+dl*dl*1.5);',
 '   float sk=pow(max(dot(rf,uKey),0.),40.)*kv;float si=pow(max(dot(rf,l),0.),30.)*iv;',
-'   if(m<1.5){',   // 옻칠한 마호가니
-'    vec3 g=p*vec3(2.5,26.,2.5);float gr=vn3(g)*.6+vn3(g*2.3)*.4;vec3 base=vec3(.20,.035,.022)*(.6+.6*gr);',
-'    float F=.04+.96*pow(1.-nv,5.);col=base*Ls*.95+(vec3(.9,.92,1.)*3.*sk+GLC*uGlow*2.5*si)*(.3+F)+F*vec3(.05,.04,.035);',
-'    vec3 a=abs(p);float pan=(a.z/BZ>a.x/BX)?step(a.x,BX-.14)*step(.13,p.y)*step(p.y,BH-.15):step(a.z,BZ-.14)*step(.13,p.y)*step(p.y,BH-.15);',
-'    if(pan>.5){vec2 uv=(a.z/BZ>a.x/BX)?p.xy:p.zy;float h=damask(uv);',   // 몸통 앞뒤옆 비단 판
-'     vec3 bc2=mix(vec3(.55,.33,.07),vec3(1.,.80,.40),h)*(.9+.2*vn3(p*160.));float e=min(min(BX-.14-(a.z/BZ>a.x/BX?a.x:a.z),p.y-.13),BH-.15-p.y);',
-'     col=bc2*Ls*.75+bc2*(vec3(.9,.92,1.)*2.4*pow(max(dot(rf,uKey),0.),14.)*kv+GLC*uGlow*2.4*pow(max(dot(rf,l),0.),12.)*iv)*(.35+.65*h);',
-'     col*=smoothstep(0.,.025,e)*.6+.4;}}',
+'   vec3 L=lidL(p);bool onLid=lidOuterI(L,.04)<baseOuter(p);float ang=atan(L.y/LH,(L.z-BZ)/BZ);',
+'   if(m<1.5||(m>4.5&&m<6.5)){',   // 판재와 테두리 목재
+'    vec3 g;float seam;if(onLid){g=vec3(L.x*1.6,ang*30.,L.z*1.6);float u=ang/3.1416*5.;seam=abs(fract(u)-.5);}',
+'    else{vec3 a2=abs(p);g=(a2.z/BZ>a2.x/BX)?vec3(p.x*1.6,p.y*30.,p.z):vec3(p.z*1.6,p.y*30.,p.x);float u=(p.y-.09)/(BH-.18)*3.;seam=abs(fract(u)-.5);}',
+'    if(m>5.5){g=g.yxz;seam=.5;}',
+'    float gr=vn3(g*vec3(3.,1.,3.))*.55+vn3(g*vec3(9.,2.6,9.))*.3+vn3(g*vec3(30.,7.,30.))*.15;',
+'    vec3 base=mix(vec3(.075,.016,.010),vec3(.25,.055,.032),gr);if(m>5.5)base*=.72;',
+'    base*=.85+.3*vn3(p*3.);base*=mix(.35,1.,smoothstep(.0,.03,.5-seam+.47));',
+'    float F=.035+.965*pow(1.-nv,5.);float gl=m>5.5?.7:1.;',
+'    col=base*Ls*1.05+(vec3(.9,.92,1.)*2.6*pow(max(dot(rf,uKey),0.),55.)*kv+GLC*uGlow*2.2*si)*(.18+F)*gl+F*vec3(.03,.025,.02);}',
+'   else if(m>6.5){',   // 가죽: 바느질 선
+'    float sx=onLid?abs(abs(L.x)-.46):abs(abs(p.x)-.46);float stitch=smoothstep(.006,.0,abs(sx-.048))*step(.5,fract((onLid?ang*10.:p.y*28.)));',
+'    vec3 base=vec3(.075,.03,.016)*(.8+.4*vn3(p*60.));base+=vec3(.22,.15,.08)*stitch;',
+'    col=base*Ls*1.1+vec3(.9,.92,1.)*.8*pow(max(dot(rf,uKey),0.),18.)*kv*.3+GLC*uGlow*.5*si*.3;}',
 '   else if(m<2.5){vec3 base=vec3(.70,.58,.45)*(.9+.15*vn3(p*40.));vec3 hv=normalize(l-rd);col=base*Ls*.9+GLC*uGlow*.25*pow(max(dot(n,hv),0.),18.)*iv*1.5;}',
-'   else if(m<3.5){vec3 F0=vec3(.92,.68,.32)*(.75+.35*vn3(p*30.));',   // 놋쇠
+'   else{vec3 F0=vec3(.86,.62,.30)*(.6+.5*vn3(p*30.));',   // 오래된 놋쇠
 '    vec3 env=mix(vec3(.004,.003,.004),vec3(.07,.055,.04),smoothstep(.1,.95,rf.y));',
-'    col=F0*(env+vec3(.9,.92,1.)*3.5*sk+GLC*uGlow*4.*si+Ls*.06);}',
-'   else{vec3 L=lidL(p);float ang=atan(L.y/LH,(L.z-BZ)/BZ);vec2 uv=vec2(L.x,ang*.62);',   // 뚜껑: 비단 + 끝 띠는 마호가니
-'    float wood=step(BX-.12,abs(L.x))+step(L.y,.06)+step(abs(L.x),.06)*0.;',
-'    if(wood>.5){vec3 g=vec3(L.x*2.5,ang*8.,L.z*26.);float gr=vn3(g)*.6+vn3(g*2.3)*.4;vec3 base=vec3(.20,.035,.022)*(.6+.6*gr);',
-'     float F=.04+.96*pow(1.-nv,5.);col=base*Ls*.95+(vec3(.9,.92,1.)*3.*sk+GLC*uGlow*2.5*si)*(.3+F)+F*vec3(.05,.04,.035);}',
-'    else{float h=damask(uv);vec3 bc2=mix(vec3(.55,.33,.07),vec3(1.,.80,.40),h)*(.9+.2*vn3(p*160.));',
-'     float e=min(BX-.12-abs(L.x),L.y-.06);',
-'     col=bc2*Ls*.75+bc2*(vec3(.9,.92,1.)*2.4*pow(max(dot(rf,uKey),0.),14.)*kv+GLC*uGlow*2.4*pow(max(dot(rf,l),0.),12.)*iv)*(.35+.65*h);',
-'     col*=smoothstep(0.,.025,e)*.6+.4;}}}}',
+'    col=F0*(env+vec3(.9,.92,1.)*3.5*sk+GLC*uGlow*4.*si+Ls*.07);}}}',
 ' else if(tf<1e8){vec3 p=ro+rd*tf;vec3 n=vec3(0.,1.,0.);float fd=smoothstep(18.,6.,tf);',
 '  float nz=vn3(vec3(p.xz*9.,0.))*.5+vn3(vec3(p.xz*27.,1.))*.33+vn3(vec3(p.xz*71.,2.))*.17;nz=mix(.5,nz,fd);',
 '  vec3 alb=vec3(.055,.046,.052)*(.8+.4*nz);',
@@ -924,7 +936,7 @@ function drawIntro(t,dt){
   if(opening&&openT<0)openT=t;
   var u0=opening?(t-openT)/1.7:0;if(STILL&&HP[8])u0=+HP[8];if(reduce&&opening&&!STILL)u0=1.31;
   var eu=ease(Math.min(1,u0));
-  var lid=0.13+(reduce?0:0.012*Math.sin(t*1.3))+(1.9-0.13)*eu;
+  var lid=0.16+(reduce?0:0.012*Math.sin(t*1.3))+(1.9-0.16)*eu;
   var glow=(1+(reduce?0:0.07*Math.sin(t*2.3)+0.04*Math.sin(t*5.7)))*1.5*(1+0.6*eu);
   var D=6.6-2.0*eu,el=(27+24*eu)*DEG;
   introYaw+=(introYawT-introYaw)*(1-Math.exp(-dt*6));var az=(reduce?0:0.17*Math.sin(t*0.23))+introYaw;
