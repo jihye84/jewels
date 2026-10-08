@@ -776,6 +776,7 @@ function endPtr(e){
   if(Object.keys(ptrs).length<2)pinch=null;
   if(drag&&had)lastDragMoved=drag.moved;
   // 인트로: 뚜껑 근처에서 위로 확실히 쓸어 올리면 '보석함 열기'와 같다
+  if(intro&&!opening&&drag&&had&&drag.moved&&needAsk)enableSensors();
   if(intro&&!opening&&drag&&had){var ux=had.x-drag.x,uy=had.y-drag.y;
     if(uy<-45&&Math.abs(uy)>Math.abs(ux)*1.3&&performance.now()-drag.t<900&&nearLid(drag.x,drag.y))openBox();}
   if(drag&&had&&!intro){var dx=had.x-drag.x,dy=had.y-drag.y,now=performance.now();
@@ -867,18 +868,21 @@ function camUpdate(now){
   camReady=true;return true;}
 var hintT=0;
 function showHint(t){hint.textContent=t;hint.classList.remove('off');clearTimeout(hintT);hintT=setTimeout(function(){hint.classList.add('off');},2600);}
-function openBox(){if(opening)return;opening=true;openT=-1;
-  sheet.classList.add('gone');
-  goFull();
+// 센서: 안드로이드 등은 바로 켜고, 아이폰은 허락이 필요해 첫 손짓(쓸기·열기) 때 묻는다
+var sensorsOn=false,sensorsAsked=false;
+function enableSensors(){if(sensorsAsked)return;sensorsAsked=true;
   var DOE=window.DeviceOrientationEvent,DME=window.DeviceMotionEvent;
   if(DME&&typeof DME.requestPermission==='function'){DME.requestPermission().then(function(r){if(r==='granted')window.addEventListener('devicemotion',onMot);}).catch(function(){});}
   else if(DME)window.addEventListener('devicemotion',onMot);
-  function listen(){window.addEventListener('deviceorientation',onOri);
-    setTimeout(function(){showHint('보석을 쓸면 돌아가고, 바탕을 쓸면 다음 보석');},intro?2600:900);}
-  if(DOE&&typeof DOE.requestPermission==='function'){
-    DOE.requestPermission().then(function(r){if(r==='granted')listen();else showHint('보석을 쓸면 돌아가고, 바탕을 쓸면 다음 보석');})
-      .catch(function(){showHint('보석을 쓸면 돌아가고, 바탕을 쓸면 다음 보석');});
-  }else if(DOE){listen();}else setTimeout(function(){showHint('보석을 쓸면 돌아가고, 바탕을 쓸면 다음 보석');},intro?2600:0);
+  function listen(){if(!sensorsOn){sensorsOn=true;window.addEventListener('deviceorientation',onOri);}}
+  if(DOE&&typeof DOE.requestPermission==='function'){DOE.requestPermission().then(function(r){if(r==='granted')listen();}).catch(function(){});}
+  else if(DOE)listen();}
+var needAsk=!!(window.DeviceOrientationEvent&&typeof window.DeviceOrientationEvent.requestPermission==='function');
+if(!needAsk&&!STILL)enableSensors();
+function openBox(){if(opening)return;opening=true;openT=-1;
+  sheet.classList.add('gone');
+  goFull();enableSensors();
+  setTimeout(function(){showHint('보석을 쓸면 돌아가고, 바탕을 쓸면 다음 보석');},intro?2600:900);
 }
 document.getElementById('go').addEventListener('click',openBox);
 
@@ -906,6 +910,9 @@ function drawIntro(t,dt){
   var T=[0,0.55+0.12*eu,0.05*eu];
   var CAMi=[T[0]+D*Math.sin(az)*Math.cos(el),T[1]+D*Math.sin(el),T[2]+D*Math.cos(az)*Math.cos(el)];
   var F=norm(sub(T,CAMi)),Rt=norm(cross(F,[0,1,0])),Up=cross(Rt,F);
+  var tiltK=0.55*(1-eu);var ax=Math.max(-0.32,Math.min(0.32,cur.x*tiltK)),ay=Math.max(-0.5,Math.min(0.5,cur.y*tiltK));
+  var RmT=tr(mmul(axisRot(Up,ay),axisRot(Rt,ax)));var rel=mv(RmT,sub(CAMi,T));CAMi=[T[0]+rel[0],T[1]+rel[1],T[2]+rel[2]];
+  F=norm(sub(T,CAMi));Rt=norm(cross(F,[0,1,0]));Up=cross(Rt,F);
   var asp=W/Hh,tx=0.25,ty=tx/asp,shift=0.22;if(ty<0.46){ty=0.46;tx=ty*asp;shift=0.04;}
   introProj={C:CAMi,F:F,R:Rt,U:Up,tx:tx,ty:ty,sh:shift};
   target(A);var u=use(BOXP);
