@@ -555,8 +555,7 @@ function prog(fs){var p=gl.createProgram();gl.attachShader(p,sh(gl.VERTEX_SHADER
    ========================================================= */
 var BOXFS='precision highp float;\n'+[
 'uniform vec2 uRes,uTan;uniform vec3 uCam,uFwd,uRight,uUp,uKey;uniform float uShift,uLid,uGlow,uTime,uGemRot;',
-'const float BX=1.1,BZ=.66,BH=.64,LH=.6;',
-'const vec3 PL=vec3(0.,BH+.02,.05);const vec3 GLC=vec3(1.,.70,.36);',
+'const vec3 PL=vec3(0.,.66,.05);const vec3 GLC=vec3(1.,.70,.36);',
 'float h21(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}',
 'float h31(vec3 p){p=fract(p*.3183099+.1);p*=17.;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}',
 'float vn3(vec3 x){vec3 i=floor(x),f=fract(x);f=f*f*(3.-2.*f);',
@@ -565,130 +564,66 @@ var BOXFS='precision highp float;\n'+[
 'vec3 hue(float h){return clamp(abs(fract(h+vec3(0.,2./3.,1./3.))*6.-3.)-1.,0.,1.);}',
 'float sdRB(vec3 p,vec3 b,float r){vec3 q=abs(p)-b+r;return length(max(q,0.))+min(max(q.x,max(q.y,q.z)),0.)-r;}',
 'float sdOct(vec3 p,float s){p=abs(p);return (p.x+p.y+p.z-s)*.57735027;}',
-'float sdTor(vec3 p,vec2 t){vec2 q=vec2(length(p.xy)-t.x,p.z);return length(q)-t.y;}',
-// 크기: 몸통 반폭 1.0 x 반깊이 .66, 높이 .62 / 둥근 지붕 뚜껑 높이 .46
-'vec3 lidL(vec3 p){vec3 q=p-vec3(0.,BH,-BZ);float c=cos(uLid),s=sin(uLid);return vec3(q.x,q.y*c-q.z*s,q.y*s+q.z*c);}',
-'float lidOuter(vec3 L){vec2 e=vec2((L.z-BZ)/BZ,L.y/LH);float de=(length(e)-1.)*LH;return max(max(de,-L.y),abs(L.x)-BX);}',
-'float baseOuter(vec3 p){return sdRB(p-vec3(0.,BH*.5,0.),vec3(BX,BH*.5,BZ),.035);}',
-'float lidOuterI(vec3 L,float k){vec2 e=vec2((L.z-BZ)/(BZ+k),L.y/(LH+k));float de=(length(e)-1.)*(LH+k);return max(max(de,-L.y),abs(L.x)-BX-k*.6);}',
-'float sdRect(vec2 p,vec2 b){vec2 d=abs(p)-b;return length(max(d,0.))+min(max(d.x,d.y),0.);}',
-'float arcS(vec2 q,vec2 c,float R,float a0,float a1,float w){vec2 v=q-c;float a=atan(v.y,v.x);float am=mod(a-a0,6.2832);float d=abs(length(v)-R);return step(am,a1-a0)*smoothstep(w,w*.25,d);}',
-'float dotS(vec2 q,vec2 c,float r){return smoothstep(r,r*.5,length(q-c));}',
-// 금빛 돋을새김: 테두리 띠와 C자 소용돌이 덩굴, 잎 방울
-'float spir(vec2 q,vec2 c,float a,float b,float t1,float w,float fl){vec2 v=q-c;v.y*=fl;float r=length(v)+1e-4;float th=atan(v.y,v.x);',
-' float k=floor((log(r/a)/b-th)/6.2832+.5);float best=1e3;',
-' for(int j=-1;j<=1;j++){float tt=th+6.2832*(k+float(j));if(tt<0.||tt>t1)continue;float rr=a*exp(b*tt);best=min(best,abs(r-rr)-w*mix(.25,1.,tt/t1));}',
-' return smoothstep(.004,-.002,best);}',
-'float leaf(vec2 q,vec2 c,vec2 dir,float L,float W){vec2 v=q-c;float u=dot(v,dir)/L;float s=dot(v,vec2(-dir.y,dir.x))/W;float wv=.15+.85*max(1.-abs(u),0.);return step(abs(u),1.)*smoothstep(1.05,.8,u*u+s*s/(wv*wv));}',
-// 금빛 돋을새김: 가는 테두리, 양쪽 S자 아칸서스 소용돌이, 잎, 가운데 부채꼴 조개무늬
-'float relief(vec2 uv,vec2 hf){vec2 q=vec2(abs(uv.x),uv.y);float sx=hf.x/1.1,sy=hf.y/.26;',
-' float h=smoothstep(.011,.003,abs(sdRect(uv,hf-vec2(.07,.05))))*.9;h=max(h,smoothstep(.007,.002,abs(sdRect(uv,hf-vec2(.1,.08))))*.8);',
- // 물결 덩굴
-' float vx=q.x/sx;float vy=.075*sy*sin(vx*8.5+.6)*smoothstep(.04,.18,vx)*smoothstep(1.,.86,vx);',
-' h=max(h,smoothstep(.009,.003,abs(q.y-vy))*step(.12*sx,q.x)*step(q.x,.9*sx));',
- // 큰 S자 소용돌이 두 개
-' h=max(h,spir(q,vec2(.27*sx,.02*sy),.012,.23,11.,.016,1.));',
-' h=max(h,spir(q,vec2(.62*sx,-.02*sy),.010,.23,10.5,.014,-1.));',
-' h=max(h,spir(q,vec2(.86*sx,.04*sy),.007,.25,8.,.009,1.));',
- // 덩굴을 따라 난 잎
-' for(int i=0;i<6;i++){float xi=(.16+.13*float(i))*sx;float yi=.075*sy*sin(xi/sx*8.5+.6);float sl=.075*sy*8.5/sx*cos(xi/sx*8.5+.6);',
-'  float up=mod(float(i),2.)*2.-1.;vec2 d=normalize(vec2(.45,up));h=max(h,leaf(q,vec2(xi,yi)+d*.045,d,.05,.02));}',
- // 가운데 부채꼴 조개
-' vec2 f=uv-vec2(0.,-.04*sy);float fr=length(f),fa=atan(f.x,f.y);',
-' h=max(h,step(fr,.11*sy)*step(abs(fa),1.35)*smoothstep(.5,.85,abs(cos(fa*5.5)))*step(.03,fr));',
-' h=max(h,smoothstep(.006,.002,abs(fr-.11*sy))*step(abs(fa),1.35));',
-' return h;}',
-'float lidRelief(vec3 L){float ang=atan(L.y/LH,(L.z-BZ)/BZ);',
-' float h=0.;if(abs(L.x)<BX-.04){',
-'  vec2 uv=vec2(L.x,(ang-.62)*.5);if(ang<1.18)h=relief(uv,vec2(BX,.27));',
-'  vec2 m=vec2(L.x,(ang-1.5708)*.55);float e=length(m/vec2(.24,.15));',   // 지붕 위 타원 메달
-'  h=max(h,smoothstep(.09,.0,abs(e-1.))*step(.0,1.));h=max(h,smoothstep(.55,.4,e));',
-'  vec2 k=vec2(abs(L.x)-.47,(ang-1.5708)*.55);h=max(h,arcS(k,vec2(0.,0.),.07,0.,6.3,.01));}',
-' return h;}',
-'float baseRelief(vec3 p){vec3 a=abs(p);if(p.y<.1||p.y>BH-.02)return 0.;',
-' if(a.z/BZ>a.x/BX)return relief(vec2(p.x,p.y-BH*.5-.02),vec2(BX,BH*.5-.06));return relief(vec2(p.z,p.y-BH*.5-.02),vec2(BZ,BH*.5-.06))*.9;}',
-'float ell(vec3 p,vec3 r){return (length(p/r)-1.)*min(r.x,min(r.y,r.z));}',
-'vec2 mapX(vec3 p,bool det){',
-' float bo=baseOuter(p);if(det)bo-=.013*baseRelief(p);',
-' float bc=sdRB(p-vec3(0.,BH-.26+.36,0.),vec3(BX-.1,.36,BZ-.1),.03);',
-' vec2 r=vec2(max(bo,-bc),(-bc>bo)?2.:8.);',
-' float pln=sdRB(p-vec3(0.,.045,0.),vec3(BX+.05,.045,BZ+.05),.018);if(pln<r.x)r=vec2(pln,8.);',
-' float cu=sdRB(p-vec3(0.,BH-.33,0.),vec3(BX-.13,.13,BZ-.13),.12);cu=max(cu,-sdRB(p-vec3(0.,BH-.19,0.),vec3(.03,.08,BZ-.18),.02));if(cu<r.x)r=vec2(cu,2.);',
-' if(det){vec3 gp=p-vec3(0.,BH-.09,0.);float cg=cos(uGemRot),sg=sin(uGemRot);gp.xz=mat2(cg,-sg,sg,cg)*gp.xz;gp.y*=1.25;float ge=sdOct(gp,.15)*.8;if(ge<r.x)r=vec2(ge,4.);',
- // 받침 위 금 구슬 띠
-'  vec3 bq=vec3(mod(p.x+.025,.05)-.025,p.y-.095,abs(p.z)-(BZ+.035));float bd=max(length(bq)-.016,abs(p.x)-BX-.02);',
-'  vec3 bs=vec3(mod(p.z+.025,.05)-.025,p.y-.095,abs(p.x)-(BX+.035));bd=min(bd,max(length(bs)-.016,abs(p.z)-BZ-.02));if(bd<r.x)r=vec2(bd,3.);}',
- // 앞 가운데 로코코 걸쇠와 양옆 작은 장식
-' vec3 c=p-vec3(0.,BH-.07,BZ+.03);float cl=ell(c,vec3(.07,.1,.045));',
-' cl=min(cl,length(vec3(abs(c.x)-.075,c.y-.05,c.z))-.032);cl=min(cl,length(c-vec3(0.,-.13,-.005))-.035);cl=min(cl,ell(c-vec3(0.,.1,-.01),vec3(.05,.035,.03)));',
-' vec3 c2=vec3(abs(p.x)-.66,p.y-(BH-.08),p.z-(BZ+.022));cl=min(cl,ell(c2,vec3(.045,.07,.03)));cl=min(cl,length(c2+vec3(0.,.085,0.))-.022);',
-' if(cl<r.x)r=vec2(cl,3.);',
- // 둥근 지붕 뚜껑
-' vec3 L=lidL(p);float lo=lidOuter(L);if(det)lo-=.012*lidRelief(L);',
-' vec2 ei=vec2((L.z-BZ)/(BZ-.09),L.y/(LH-.08));float lc=max(max((length(ei)-1.)*(LH-.08),-L.y-.05),abs(L.x)-(BX-.09));',
-' float ld=max(lo,-lc);if(ld<r.x)r=vec2(ld,(-lc>lo)?2.:9.);',
- // 금 손잡이: 가로 막대, 가운데 장식, 양 끝 고리와 받침
-' vec3 hq=L-vec3(0.,LH+.12,BZ);',
-' float hd=max(length(hq.yz)-.03,abs(hq.x)-.45);',
-' hd=min(hd,ell(hq,vec3(.13,.045,.045)));hd=min(hd,length(vec3(abs(hq.x)-.3,hq.y,hq.z))-.04);',
-' vec3 m=vec3(hq.y+.06,hq.z,abs(hq.x)-.47);hd=min(hd,sdTor(m,vec2(.07,.02)));',
-' hd=min(hd,ell(vec3(abs(L.x)-.47,L.y-LH,L.z-BZ),vec3(.07,.05,.07)));',
-' if(hd<r.x)r=vec2(hd,3.);',
+'vec3 lidL(vec3 p){vec3 q=p-vec3(0.,.72,-.85);float c=cos(uLid),s=sin(uLid);return vec3(q.x,q.y*c-q.z*s,q.y*s+q.z*c);}',
+'vec2 mapX(vec3 p,bool withGem){',
+' float bo=sdRB(p-vec3(0.,.36,0.),vec3(1.2,.36,.85),.07);',
+' float bc=sdRB(p-vec3(0.,.66,0.),vec3(1.08,.36,.73),.035);',
+' vec2 r=vec2(max(bo,-bc),(-bc>bo)?2.:(p.y>.655?3.:1.));',
+' float cu=sdRB(p-vec3(0.,.36,0.),vec3(1.04,.15,.7),.13);cu=max(cu,-sdRB(p-vec3(0.,.52,0.),vec3(.03,.08,.62),.02));',
+' if(cu<r.x)r=vec2(cu,2.);',
+' if(withGem){vec3 gp=p-vec3(0.,.62,0.);float cg=cos(uGemRot),sg=sin(uGemRot);gp.xz=mat2(cg,-sg,sg,cg)*gp.xz;gp.y*=1.25;float ge=mix(sdOct(gp,.17)*.8,length(gp)-.105,.7);if(ge<r.x)r=vec2(ge,4.);}',
+' float cl=sdRB(p-vec3(0.,.63,.86),vec3(.1,.07,.025),.02);if(cl<r.x)r=vec2(cl,3.);',
+' vec3 L=lidL(p);',
+' float lo=sdRB(L-vec3(0.,.15,.85),vec3(1.2,.15,.85),.1);',
+' float lc=sdRB(L-vec3(0.,.06,.85),vec3(1.08,.12,.73),.035);',
+' float ld=max(lo,-lc);if(ld<r.x)r=vec2(ld,(-lc>lo)?2.:(L.y<.06?3.:1.));',
+' float em=sdRB(L-vec3(0.,.3,.85),vec3(.24,.012,.16),.012);if(em<r.x)r=vec2(em,3.);',
 ' return r;}',
 'vec3 nrm(vec3 p){vec2 e=vec2(.0015,-.0015);return normalize(e.xyy*mapX(p+e.xyy,true).x+e.yyx*mapX(p+e.yyx,true).x+e.yxy*mapX(p+e.yxy,true).x+e.xxx*mapX(p+e.xxx,true).x);}',
 'float soft(vec3 ro,vec3 rd,float tmax,float k){float res=1.,t=.02;for(int i=0;i<26;i++){float h=mapX(ro+rd*t,false).x;res=min(res,k*h/t);t+=clamp(h,.015,.22);if(res<.002||t>tmax)break;}return clamp(res,0.,1.);}',
 'float softQ(vec3 ro,vec3 rd,float tmax,float k){float res=1.,t=.02;for(int i=0;i<20;i++){float h=mapX(ro+rd*t,false).x;res=min(res,k*h/t);t+=clamp(h,.02,.25);if(res<.002||t>tmax)break;}return clamp(res,0.,1.);}',
-'vec3 inner(vec3 p,vec3 n){vec3 l=PL-p;float d=length(l);l/=d;float sh=soft(p+n*.012,l,d-.06,18.);return GLC*uGlow*.9*max(dot(n,l),0.)*sh/(1.+d*d*3.);}',
-'vec3 keyL(vec3 p,vec3 n){float nd=max(dot(n,uKey),0.);if(nd<=0.)return vec3(0.);return vec3(.85,.88,1.)*1.0*nd*soft(p+n*.012,uKey,6.,9.);}',
-// 금실 다마스크 무늬: 꽃송이와 덩굴
-'float damask(vec2 uv){vec2 g=uv*2.3;vec2 id=floor(g);if(mod(id.y,2.)>.5)g.x+=.5;vec2 f=fract(g)-.5;',
-' float r=length(f),a=atan(f.y,f.x);float pet=.17+.08*cos(a*6.);',
-' float fl=smoothstep(.035,.0,abs(r-pet))+smoothstep(.075,.035,r)+smoothstep(.03,0.,abs(r-.29-.03*cos(a*12.)))*.6;',
-' float sw=abs(sin(g.x*6.283+sin(g.y*6.283)*1.6));float lf=smoothstep(.16,0.,sw)*smoothstep(.3,.42,r);',
-' return clamp(fl+lf*.8,0.,1.);}',
+'vec3 inner(vec3 p,vec3 n){vec3 l=PL-p;float d=length(l);l/=d;float sh=soft(p+n*.012,l,d-.06,18.);return GLC*uGlow*1.1*max(dot(n,l),0.)*sh/(1.+d*d*10.);}',
+'vec3 keyL(vec3 p,vec3 n){float nd=max(dot(n,uKey),0.);if(nd<=0.)return vec3(0.);return vec3(.72,.80,1.)*.8*nd*soft(p+n*.012,uKey,6.,9.);}',
 'vec3 aces(vec3 x){return clamp(x*(2.51*x+.03)/(x*(2.43*x+.59)+.14),0.,1.);}',
 'void main(){',
 ' vec2 q=gl_FragCoord.xy/uRes*2.-1.;',
 ' vec3 ro=uCam,rd=normalize(uFwd+uRight*q.x*uTan.x+uUp*(q.y-uShift)*uTan.y);',
 ' float tf=rd.y<0.?-ro.y/rd.y:1e9;',
 ' float t=1e9;vec2 hm=vec2(0.);',
-' vec3 bc=vec3(0.,.9,-.2);float b=dot(ro-bc,rd),c=dot(ro-bc,ro-bc)-2.6*2.6;float hh=b*b-c;',
-' if(hh>0.){float tt=max(-b-sqrt(hh),0.),te=-b+sqrt(hh);for(int i=0;i<110;i++){hm=mapX(ro+rd*tt,true);if(hm.x<.0007*tt)break;tt+=hm.x*.8;if(tt>te)break;}if(tt<te&&hm.x<.01)t=tt;}',
+' vec3 bc=vec3(0.,1.,-.2);float b=dot(ro-bc,rd),c=dot(ro-bc,ro-bc)-2.6*2.6;float hh=b*b-c;',
+' if(hh>0.){float tt=max(-b-sqrt(hh),0.),te=-b+sqrt(hh);for(int i=0;i<96;i++){hm=mapX(ro+rd*tt,true);if(hm.x<.0008*tt)break;tt+=hm.x*.9;if(tt>te)break;}if(tt<te&&hm.x<.01)t=tt;}',
 ' vec3 col;',
 ' if(t<tf){vec3 p=ro+rd*t,n=nrm(p);float nv=max(dot(n,-rd),0.);float m=hm.y;',
-'  vec3 amb=vec3(.016,.015,.02)*(.6+.4*n.y);vec3 rf=reflect(rd,n);',
-'  if(m>3.5&&m<4.5){float sp=pow(max(dot(rf,normalize(vec3(.2,1.,.3))),0.),8.);',
-'   col=mix(vec3(1.,.96,.88),hue(dot(n,vec3(.3,.7,.2))*2.+uTime*.15),.4)*uGlow*(1.2+3.*sp);}',
-'  else{vec3 Ls=keyL(p,n)+inner(p,n)+amb;float kv=soft(p+n*.012,uKey,6.,9.);',
-'   vec3 l=normalize(PL-p);float dl=length(PL-p);float iv=soft(p+n*.012,l,dl-.06,18.)/(1.+dl*dl*1.5);',
-'   float sk=pow(max(dot(rf,uKey),0.),40.)*kv;float si=pow(max(dot(rf,l),0.),30.)*iv;',
-'   vec3 L=lidL(p);bool onLid=lidOuterI(L,.04)<baseOuter(p);',
-'   vec3 GF=vec3(.98,.64,.22);',
-'   if(m>7.5){',   // 상아색 칠 + 금빛 돋을새김과 붓질 자국
-'    float h=onLid?lidRelief(L):baseRelief(p);if(m<8.5&&p.y<.1)h=0.;',
-'    vec3 w=onLid?vec3(L.x*5.,atan(L.y/LH,(L.z-BZ)/BZ)*60.,L.z*5.):vec3(p.x*5.,p.y*70.,p.z*5.);',
-'    float br=vn3(w)*.6+vn3(w*vec3(3.,2.,3.))*.4;float dry=smoothstep(.72,.9,br)*.6;',
-'    float gm=max(smoothstep(.35,.6,h),dry*.75);',
-'    vec3 iv0=vec3(.78,.68,.50)*(.92+.12*vn3(p*25.));iv0*=mix(.62,1.,smoothstep(.0,.25,h)+step(h,.005));',
-'    vec3 dif=iv0*Ls*.95+iv0*.05*pow(1.-nv,2.)*dot(Ls,vec3(.33));',
-'    float ish=.06*pow(max(dot(rf,uKey),0.),20.)*kv;',
-'    vec3 gold=GF*(.75+.3*vn3(p*60.))*(Ls*.35+vec3(.9,.92,1.)*1.6*pow(max(dot(rf,uKey),0.),8.)*kv+GLC*uGlow*3.*pow(max(dot(rf,l),0.),20.)*iv+mix(vec3(.01),vec3(.06,.05,.035),smoothstep(.1,.9,rf.y)));',
-'    col=mix(dif+ish,gold,gm);}',
-'   else if(m<2.5){vec3 base=vec3(.72,.56,.50)*(.9+.15*vn3(p*40.));vec3 hv=normalize(l-rd);col=base*Ls*.9+GLC*uGlow*.25*pow(max(dot(n,hv),0.),18.)*iv*1.5;}',
-'   else{vec3 F0=GF*(.85+.25*vn3(p*30.));',   // 금 장식
-'    vec3 env=mix(vec3(.006,.005,.005),vec3(.08,.065,.045),smoothstep(.1,.95,rf.y));',
-'    col=F0*(env*1.6+vec3(.9,.92,1.)*3.5*sk+GLC*uGlow*4.*si+Ls*.3);}}}',
+'  vec3 amb=vec3(.014,.013,.018)*(.6+.4*n.y);',
+'  if(m>3.5){vec3 r=reflect(rd,n);float sp=pow(max(dot(r,normalize(vec3(.2,1.,.3))),0.),8.);',
+'   col=mix(vec3(1.,.96,.88),hue(dot(n,vec3(.3,.7,.2))*2.+uTime*.15),.4)*uGlow*(.7+1.4*sp);}',
+'  else{vec3 Ls=keyL(p,n)+inner(p,n)+amb;',
+'   if(m<1.5){',   // 벨벳: 정면은 깊게 어둡고 비스듬한 곳에서 털결이 빛을 받아 밝아진다. 눌린 결 얼룩과 잔털 질감
+'    float fb=vn3(p*110.)*.55+vn3(p*260.)*.3+vn3(p*620.)*.15;float cr=vn3(p*vec3(6.,8.,6.))*.6+vn3(p*17.+3.)*.4;',
+'    float fr=1.-nv;float shn=pow(fr,mix(1.4,3.4,cr))*(.7+.6*fb);',
+'    vec3 base=vec3(.085,.004,.016)*(.65+.7*fb);vec3 shc=vec3(.66,.13,.21);float li=dot(Ls,vec3(.33));',
+'    float bs=pow(max(dot(rd,-uKey),0.),4.)*.0;',
+'    col=base*Ls*(1.-.5*fr)+shc*shn*(li*.75+.02)+shc*.25*pow(fr,6.)*li;}',
+'   else if(m<2.5){vec3 base=vec3(.70,.58,.45)*(.9+.15*vn3(p*40.));vec3 l=normalize(PL-p);vec3 hv=normalize(l-rd);',
+'    col=base*Ls*.9+GLC*uGlow*.25*pow(max(dot(n,hv),0.),18.)*soft(p+n*.012,l,length(PL-p)-.06,18.);}',
+'   else{vec3 F0=vec3(1.,.74,.36);vec3 r=reflect(rd,n);vec3 l=normalize(PL-p);float dl=length(PL-p);',
+'    float sk=pow(max(dot(r,uKey),0.),36.)*soft(p+n*.012,uKey,6.,9.);float si=pow(max(dot(r,l),0.),24.)*soft(p+n*.012,l,dl-.06,18.)/(1.+dl*dl*1.5);',
+'    vec3 env=mix(vec3(.004,.003,.004),vec3(.07,.055,.04),smoothstep(.1,.95,r.y));',
+'    col=F0*(env+vec3(.8,.85,1.)*3.2*sk+GLC*uGlow*4.*si+Ls*.05);}}}',
 ' else if(tf<1e8){vec3 p=ro+rd*tf;vec3 n=vec3(0.,1.,0.);float fd=smoothstep(18.,6.,tf);',
 '  float nz=vn3(vec3(p.xz*9.,0.))*.5+vn3(vec3(p.xz*27.,1.))*.33+vn3(vec3(p.xz*71.,2.))*.17;nz=mix(.5,nz,fd);',
 '  vec3 alb=vec3(.055,.046,.052)*(.8+.4*nz);',
 '  float pool=smoothstep(4.8,.4,length(p.xz-vec2(-.4,.2)));',
 '  vec3 l=PL-p;float d=length(l);l/=d;float vis=soft(p+n*.01,l,d-.06,22.);',
-'  col=alb*(vec3(.85,.88,1.)*.9*uKey.y*pool*soft(p+n*.01,uKey,6.,7.)+GLC*uGlow*7.*max(l.y,0.)*vis/(.35+d*d*.9)+vec3(.012,.012,.016));}',
+'  col=alb*(vec3(.72,.80,1.)*.75*uKey.y*pool*soft(p+n*.01,uKey,6.,7.)+GLC*uGlow*7.*max(l.y,0.)*vis/(.35+d*d*.9)+vec3(.012,.012,.016));}',
 ' else col=vec3(.004,.004,.006);',
+' {vec3 w=PL-ro;float al=dot(w,rd);float dr=length(w-rd*al);if(dr<.6){float dc=length(w);float hv=softQ(PL+normalize(ro-PL)*.16,normalize(ro-PL),dc-.3,30.);col+=GLC*uGlow*hv*(1.4*exp(-dr*dr*120.)+.22*exp(-dr*9.));}}',
+ // 빛줄기: 틈새로 빠져나온 빛이 공기 중 먼지에 비친다
 ' float tEnd=min(min(t,tf),9.);vec3 vc=vec3(0.,.6,.9);float vb=dot(ro-vc,rd),vcc=dot(ro-vc,ro-vc)-2.4*2.4;float vh=vb*vb-vcc;float acc=0.;',
 ' if(vh>0.){float t0=max(-vb-sqrt(vh),0.),t1=min(-vb+sqrt(vh),tEnd);if(t1>t0){float dt=(t1-t0)/12.;float j=.25+.5*h21(gl_FragCoord.xy);',
 '  for(int i=0;i<12;i++){vec3 s=ro+rd*(t0+dt*(float(i)+j));vec3 l=PL-s;float d=length(l);float v=softQ(s,l/d,d-.07,48.);acc+=v*exp(-d*2.2)/(.06+d*d*1.5)*dt;}}}',
 ' col+=GLC*uGlow*acc*.5;',
+ // 빛 속에 떠도는 먼지
 ' float dust=0.;for(int i=0;i<22;i++){float fi=float(i);vec3 pp=vec3(h21(vec2(fi,1.))*2.6-1.3,.55+h21(vec2(fi,2.))*1.4,.6+h21(vec2(fi,3.))*1.8);',
 '  pp+=vec3(sin(uTime*.21+fi*1.7)*.18,sin(uTime*.13+fi)*.12,cos(uTime*.17+fi*2.3)*.15);vec3 w=pp-ro;float al=dot(w,rd);',
 '  if(al>0.&&al<tEnd){float dd=length(w-rd*al);float sz=.006+.006*h21(vec2(fi,4.));dust+=smoothstep(sz,0.,dd)*(.5+.5*sin(uTime*2.+fi*3.))/(1.+dot(pp-PL,pp-PL)*1.5);}}',
@@ -957,14 +892,14 @@ function drawIntro(t,dt){
   if(opening&&openT<0)openT=t;
   var u0=opening?(t-openT)/1.7:0;if(STILL&&HP[8])u0=+HP[8];if(reduce&&opening&&!STILL)u0=1.31;
   var eu=ease(Math.min(1,u0));
-  var lid=0.16+(reduce?0:0.012*Math.sin(t*1.3))+(1.9-0.16)*eu;
+  var lid=0.105+(reduce?0:0.012*Math.sin(t*1.3))+(1.95-0.105)*eu;
   var glow=(1+(reduce?0:0.07*Math.sin(t*2.3)+0.04*Math.sin(t*5.7)))*1.5*(1+0.6*eu);
   var D=6.6-2.0*eu,el=(27+24*eu)*DEG;
   introYaw+=(introYawT-introYaw)*(1-Math.exp(-dt*6));var az=(reduce?0:0.17*Math.sin(t*0.23))+introYaw;
-  var T=[0,0.62+0.05*eu,0.05*eu];
+  var T=[0,0.55+0.12*eu,0.05*eu];
   var CAMi=[T[0]+D*Math.sin(az)*Math.cos(el),T[1]+D*Math.sin(el),T[2]+D*Math.cos(az)*Math.cos(el)];
   var F=norm(sub(T,CAMi)),Rt=norm(cross(F,[0,1,0])),Up=cross(Rt,F);
-  var asp=W/Hh,tx=0.215,ty=tx/asp,shift=0.2;if(ty<0.46){ty=0.46;tx=ty*asp;shift=0.04;}
+  var asp=W/Hh,tx=0.25,ty=tx/asp,shift=0.22;if(ty<0.46){ty=0.46;tx=ty*asp;shift=0.04;}
   target(A);var u=use(BOXP);
   gl.uniform2f(u.uRes,W,Hh);gl.uniform2f(u.uTan,tx,ty);gl.uniform3fv(u.uCam,CAMi);gl.uniform3fv(u.uFwd,F);gl.uniform3fv(u.uRight,Rt);gl.uniform3fv(u.uUp,Up);
   gl.uniform3fv(u.uKey,norm([-0.45,0.82,0.36]));gl.uniform1f(u.uShift,shift);gl.uniform1f(u.uLid,lid);gl.uniform1f(u.uGlow,glow);
