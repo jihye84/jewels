@@ -764,7 +764,7 @@ canvas.addEventListener('pointermove',function(e){
   if(pinch&&ids.length>=2){var a=ptrs[ids[0]],b=ptrs[ids[1]];setZoom(pinch.z*Math.hypot(a.x-b.x,a.y-b.y)/Math.max(10,pinch.d));return;}
   if(!drag)return;var dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>8)drag.moved=true;
   var now=performance.now();
-  if(intro){introYawT=Math.max(-.7,Math.min(.7,introYawT+(e.clientX-drag.lx)/Math.min(window.innerWidth,window.innerHeight)*1.6));drag.lx=e.clientX;drag.ly=e.clientY;lastTouch=now;return;}
+  if(intro){introYawT=Math.max(-.7,Math.min(.7,introYawT-(e.clientX-drag.lx)/Math.min(window.innerWidth,window.innerHeight)*1.6));drag.lx=e.clientX;drag.ly=e.clientY;lastTouch=now;return;}
   if(drag.gem){var s=Math.min(window.innerWidth,window.innerHeight)/Math.max(1,zoom),mx=e.clientX-drag.lx,my=e.clientY-drag.ly;
     var ay=mx/s*ROT_K,ax=my/s*ROT_K;USER=mmul(mmul(axisRot(UP0,ay),axisRot(RIGHT0,ax)),USER);
     var dtm=Math.max(.008,(now-drag.lt)/1000);spinV.x+=(ax/dtm-spinV.x)*.5;spinV.y+=(ay/dtm-spinV.y)*.5;
